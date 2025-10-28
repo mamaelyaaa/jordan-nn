@@ -26,17 +26,17 @@
 ## 3. Алгоритм прямого распространения сигнала
 
 1. Расширяем вектор значений входов, добавляя единицу в начало вектора:
-   $$\vec{\tilde{x}} = \begin{bmatrix} 1 \\ \vec x \end{bmatrix}$$
+$$\vec{\tilde{x}} = [1, \vec x]^T$$
 2. Рассчитываем состояния нейронов скрытого слоя: 
-   $$\vec S_H = W_{IH} \cdot \vec{\tilde{x}} + W_{CH} \cdot \vec c$$
+$$\vec S_H = W_{IH} \cdot \vec{\tilde{x}} + W_{CH} \cdot \vec c$$
 3. Рассчитываем значения выходов нейронов скрытого слоя:
-   $$\vec h = f_H(\vec S_H)$$
+$$\vec h = f_H(\vec S_H)$$
 4. Расширяем вектор значений выходов нейронов скрытого слоя, добавляя единицу в начало вектора:
-   $$\vec{\tilde{h}} = \begin{bmatrix} 1 \\ \vec h \end{bmatrix}$$
+$$\vec{\tilde{h}} = [1, \vec h]^T$$
 5. Рассчитываем состояния нейронов выходного слоя: 
-   $$\vec S_O = W_{HO} \cdot \vec{\tilde{h}}$$
+$$\vec S_O = W_{HO} \cdot \vec{\tilde{h}}$$
 6. Рассчитываем значения выходов нейронов выходного слоя:
-   $$\vec y = f_O(\vec S_O)$$
+$$\vec y = f_O(\vec S_O)$$
 
 ## 4. Алгоритм расчёта поправок весов
 
@@ -50,13 +50,13 @@
 
 1. Рассчитываем выходы сети по алгоритму прямого распростронения сигнала — $\vec y$ `(см. 3)`.
 2. Рассчитываем вектор значений ошибок выходов сети относительно обучающего примера:
-   $$\vec\Delta = \vec y_{пр} - \vec y$$
+$$\vec\Delta = \vec y_{пр} - \vec y$$
 3. Рассчитываем значения невязок нейронов выходного слоя:
-   $$\vec\delta _O = \vec\Delta \odot f_O'(\vec S_O)$$
+$$\vec\delta _O = \vec\Delta \odot f_O'(\vec S_O)$$
 4. Рассчитываем значения невязок нейронов скрытого слоя:
-   $$\vec\delta _H = (W_{HO} \cdot \vec\delta _O) \odot f_H'(\vec S_H)$$
+$$\vec\delta _H = (W_{HO} \cdot \vec\delta _O) \odot f_H'(\vec S_H)$$
 5. Рассчитываются поправки весовых коэффициентов:
-   $$\Delta W_{IH} = v \cdot (\vec\delta _H \cdot \vec{\tilde{x}}^T),$$
-   $$\Delta W_{СH} = v \cdot (\vec\delta _H \cdot \vec с^T),$$
-   $$\Delta W_{HO} = v \cdot (\vec\delta _O \cdot \vec{\tilde{h}}^T),$$
-   где $\vec{\tilde{x}}, \vec{\tilde{h}}$ — расширенные векторы значений входов примера и выходов нейронов скрытого слоя `(см. 3.1, 3.4)`
+$$\Delta W_{IH} = v \cdot (\vec\delta _H \cdot \vec{\tilde{x}}^T),$$
+$$\Delta W_{СH} = v \cdot (\vec\delta _H \cdot \vec с^T),$$
+$$\Delta W_{HO} = v \cdot (\vec\delta _O \cdot \vec{\tilde{h}}^T),$$
+где $\vec{\tilde{x}}, \vec{\tilde{h}}$ — расширенные векторы значений входов примера и выходов нейронов скрытого слоя `(см. 3.1, 3.4)`

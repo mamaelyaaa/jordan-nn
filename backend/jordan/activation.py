@@ -1,6 +1,8 @@
 from math import exp
 from typing import Protocol
 
+import numpy as np
+
 
 class ActivationProtocol(Protocol):
     """Прототип, описывающий функции активации"""
@@ -18,17 +20,15 @@ class SigmoidActivation:
         :param t:
         """
         self.t = t
-        self.validate_saturation(saturation)
         self.saturation = saturation
 
-    def calculate(self, x: float) -> float:
-        return 1 / (1 + exp(-self.saturation * (x - self.t)))
-
-    @staticmethod
-    def validate_saturation(saturation: float) -> None:
-        if not 0.5 <= saturation <= 2.5:
-            raise ValueError("Не рекомендованный параметр сатурации. От 0.5 до 2.5")
-        return
+    def calculate(self, x: np.ndarray) -> np.ndarray:
+        return np.array(
+            [
+                1 / (1 + np.exp(-self.saturation * (x[i] - self.t)))
+                for i in range(len(x))
+            ]
+        )
 
 
 class ReLUActivation:

@@ -1,33 +1,38 @@
 import random
 from typing import Optional
 
+import numpy as np
+
 
 class Neuron:
     """Класс, имплементирующий работу нейрона в НС"""
 
-    def __init__(self, inputs: list[float], weights: Optional[list[float]] = None):
+    def __init__(
+        self,
+        inputs: list[float] | np.ndarray,
+        weights: Optional[np.ndarray] = None,
+    ):
         """
         :param inputs: Входящие данные для нейрона
         :param weights: Веса входящие в текущий нейрон
         """
         self.inputs = inputs
         self.weights = (
-            [1] + weights
+            [1.0] + weights
             if weights
-            else [1] + [random.uniform(-1, 1) for _ in range(len(inputs))]
+            else [1.0] + [random.uniform(-1, 1) for _ in range(len(inputs))]
         )
 
     def __repr__(self):
         return f"Нейрон <Веса: {[float(f"{weight:.2f}") for weight in self.weights]}, входы: {self.inputs}>"
 
 
-class NeuronResidual(Neuron):
-    """Класс, расширяющий работу обычного нейрона в расчете невязки"""
-
-    def __init__(self, inputs: list[float], weights: Optional[list[float]] = None):
-        super().__init__(inputs, weights)
-        self.residuals: list[float]
-
+# class NeuronResidual(Neuron):
+#     """Класс, расширяющий работу обычного нейрона в расчете невязки"""
+#
+#     def __init__(self, inputs: list[float], weights: Optional[list[float]] = None):
+#         super().__init__(inputs, weights)
+#         self.residuals: list[float]
 
 # class Neuron:
 #

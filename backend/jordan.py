@@ -83,7 +83,7 @@ for epoch in range(len(X)):
 
     # 4. Расширяем вектор значений выходов нейронов скрытого слоя, добавляя единицу в начало вектора:
 
-    H_fictive = np.append(1, S_h)
+    H_fictive = np.append(1, H_out)
     assert H_fictive.shape == (m + 1,)
 
     # print(f"- Входные данные для выходного слоя {H_fictive = }")
@@ -145,6 +145,6 @@ for epoch in range(len(X)):
     # print(f"Матрица весов между входным и скрытым слоем:\n {W_ih}")
 
     # Обновляем контекст
-    c = y_exp
+    c = y_exp.copy()
 
-    print(f"Эпоха {epoch + 1} завершена! MAE: {sum(D) / len(D)}")
+    print(f"Эпоха {epoch + 1} завершена! MAE: {np.mean(np.abs(D))}")

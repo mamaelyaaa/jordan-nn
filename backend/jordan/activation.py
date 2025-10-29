@@ -1,4 +1,3 @@
-from math import exp
 from typing import Protocol
 
 import numpy as np
@@ -7,7 +6,7 @@ import numpy as np
 class ActivationProtocol(Protocol):
     """Прототип, описывающий функции активации"""
 
-    def calculate(self, x: float) -> float:
+    def calculate(self, x: np.ndarray) -> np.ndarray:
         pass
 
 

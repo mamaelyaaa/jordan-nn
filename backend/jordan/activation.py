@@ -52,6 +52,19 @@ class SigmoidActivation:
         return self._saturation
 
 
+class TanhActivation:
+    """Функция активации гиперболический тангенс"""
+
+    def __init__(self):
+        pass
+
+    def calculate(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplemented
+
+    def derivative(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplemented
+
+
 class ReLUActivation:
     """Функция активации ReLU"""
 
@@ -62,4 +75,5 @@ class ReLUActivation:
         return 0 if x <= 0 else self._k * x
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
+        # TODO Подумать над этим
         return 0 if x <= 0 else self._k

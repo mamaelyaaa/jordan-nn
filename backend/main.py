@@ -5,7 +5,7 @@ from jordan.network import JordanNetwork, Layer
 
 if __name__ == "__main__":
 
-    X = np.array(
+    x = np.array(
         [
             [0, 0],
             [1, 0.75],
@@ -36,10 +36,11 @@ if __name__ == "__main__":
     )
 
     jordan_nn = JordanNetwork(
-        x=X,
+        x,
+        y,
         hid_layer=Layer(neurons=5, activation=SigmoidActivation()),
         out_layer=Layer(neurons=2, activation=SigmoidActivation()),
-        learning_rate=1,
+        learning_rate=0.3,
     )
 
-    jordan_nn.train(X, y, epochs=1000)
+    jordan_nn.train(x, y, epochs=3000)

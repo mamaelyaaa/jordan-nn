@@ -1,7 +1,8 @@
 import numpy as np
 
-from jordan.activation import SigmoidActivation
-from jordan.network import JordanNetwork, Layer
+from jordan.activation import SigmoidActivation, ReLUActivation, TanhActivation
+from jordan.layers import HiddenLayer, OutputLayer
+from jordan.network import JordanNetwork
 
 if __name__ == "__main__":
 
@@ -36,11 +37,27 @@ if __name__ == "__main__":
     )
 
     jordan_nn = JordanNetwork(
-        x,
-        y,
-        hid_layer=Layer(neurons=5, activation=SigmoidActivation()),
-        out_layer=Layer(neurons=2, activation=SigmoidActivation()),
-        learning_rate=0.3,
+        hid_layer=HiddenLayer(
+            neurons=4,
+            activation=TanhActivation(saturation=1.5),
+        ),
+        out_layer=OutputLayer(
+            outputs=len(y[0]),
+            activation=SigmoidActivation(),
+        ),
+        learning_rate=0.2,
     )
 
-    jordan_nn.train(x, y, epochs=3000)
+    jordan_nn.train(x, y, epochs=5000, verbose=True)
+
+    print("Ожидаемые vs Предсказанные:")
+    for i in range(len(x)):
+        pred = jordan_nn.predict(x[i : i + 1])[0]
+        print(f"Input: {x[i]} | Expected: {y[i]} | Predicted: {pred}")
+
+    total_error = 0
+    for i in range(len(x)):
+        pred = jordan_nn.predict(x[i : i + 1])[0]
+        error = np.mean(np.abs(y[i] - pred))
+        total_error += error
+    print(f"Средняя ошибка: {total_error/len(x):.4f}")

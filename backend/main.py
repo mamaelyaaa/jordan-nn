@@ -38,14 +38,14 @@ if __name__ == "__main__":
 
     jordan_nn = JordanNetwork(
         hid_layer=HiddenLayer(
-            neurons=4,
-            activation=TanhActivation(saturation=1.5),
+            neurons=8,
+            activation=SigmoidActivation(),
         ),
         out_layer=OutputLayer(
             outputs=len(y[0]),
             activation=SigmoidActivation(),
         ),
-        learning_rate=0.2,
+        learning_rate=0.5,
     )
 
     jordan_nn.train(x, y, epochs=5000, verbose=True)

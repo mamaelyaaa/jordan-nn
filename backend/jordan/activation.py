@@ -63,7 +63,7 @@ class TanhActivation:
         )
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
-        return self._saturation / 2 * (1 - self.calculate(x) ** 2)
+        return self._saturation / 2 * (1 - self.calculate(x)) ** 2
 
 
 class ReLUActivation:

@@ -77,3 +77,15 @@ class ReLUActivation:
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
         return np.array([0 if sample <= 0 else self._k for sample in x])
+
+
+class LinearActivation:
+    """Линейная функция активации для регрессии"""
+
+    @staticmethod
+    def calculate(x: np.ndarray) -> np.ndarray:
+        return x
+
+    @staticmethod
+    def derivative(x: np.ndarray) -> np.ndarray:
+        return np.ones_like(x)

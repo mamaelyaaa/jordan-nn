@@ -51,6 +51,7 @@ class JordanNetwork:
         # Рассчитываем состояния нейронов скрытого слоя
         s_h: np.ndarray = np.dot(self.w_ih, training) + np.dot(self.w_ch, self._context)
         assert s_h.shape == (self._h_layer.neurons,)
+        self._h_layer.states = s_h
 
         # Рассчитываем значения выходов нейронов скрытого слоя
         h_out: np.ndarray = self._h_layer.activation.calculate(s_h)
@@ -63,11 +64,11 @@ class JordanNetwork:
 
         # Рассчитываем состояния нейронов выходного слоя
         s_y: np.ndarray = np.dot(self.w_ho, h_out)
-        assert s_y.shape == (self._o_layer.outputs,)
+        assert s_y.shape == (self._o_layer.neurons,)
 
         # Рассчитываем значения выходов нейронов выходного слоя:
         y_exp: np.ndarray = self._o_layer.activation.calculate(s_y)
-        assert y_exp.shape == (self._o_layer.outputs,)
+        assert y_exp.shape == (self._o_layer.neurons,)
 
         # НОВОЕ!! Обновляем контекст
         self._context = y_exp.copy()
@@ -158,6 +159,7 @@ class JordanNetwork:
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         """Предсказание для нескольких примеров"""
+
         if self.w_ih is None:
             raise ValueError("Сеть не обучена. Сначала вызовите train()")
 

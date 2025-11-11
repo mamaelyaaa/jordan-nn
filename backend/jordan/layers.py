@@ -1,24 +1,24 @@
+import numpy as np
+
 from jordan.activation import ActivationProtocol
 
 
 class Layer:
-    def __init__(self, activation: ActivationProtocol, fictive: bool):
+    inputs: np.ndarray
+    states: np.ndarray
+
+    def __init__(self, neurons: int, activation: ActivationProtocol):
+        self.neurons = neurons
         self.activation = activation
-        self.fictive = fictive
 
 
 class HiddenLayer(Layer):
 
-    def __init__(
-        self, neurons: int, activation: ActivationProtocol, fictive: bool = True
-    ):
-        super().__init__(activation, fictive)
-        self.neurons = neurons
+    def __init__(self, neurons: int, activation: ActivationProtocol):
+        super().__init__(neurons, activation)
 
 
 class OutputLayer(Layer):
-    def __init__(
-        self, outputs: int, activation: ActivationProtocol, fictive: bool = True
-    ):
-        super().__init__(activation, fictive)
-        self.outputs = outputs
+
+    def __init__(self, neurons: int, activation: ActivationProtocol):
+        super().__init__(neurons, activation)

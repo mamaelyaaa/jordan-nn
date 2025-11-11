@@ -1,63 +1,33 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
-from jordan.activation import SigmoidActivation, ReLUActivation, TanhActivation
+from jordan.activation import (
+    SigmoidActivation,
+    ReLUActivation,
+    LinearActivation,
+    TanhActivation,
+)
+from jordan.jordan import JordanRNN
 from jordan.layers import HiddenLayer, OutputLayer
-from jordan.network import JordanNetwork
 
 if __name__ == "__main__":
-
-    x = np.array(
-        [
-            [0, 0],
-            [1, 0.75],
-            [0.5, 1],
-            [0.75, 0.25],
-            [0.25, 0.5],
-            [0, 0.25],
-            [0.75, 1],
-            [1, 0.5],
-            [0.5, 0],
-            [0.25, 0.75],
-        ]
+    jnn = JordanRNN(
+        hidden_layer=HiddenLayer(activation=SigmoidActivation(), neurons=2),
+        output_layer=OutputLayer(activation=LinearActivation(), neurons=2),
+        learning_rate=0.03,
     )
 
-    y = np.array(
-        [
-            [0, 1],
-            [0.875, 0.75],
-            [0.75, 0.5],
-            [0.5, 0.375],
-            [0.375, 0.5],
-            [0.125, 0.75],
-            [0.875, 0.75],
-            [0.75, 0.5],
-            [0.25, 0.5],
-            [0.5, 0.375],
-        ]
-    )
+    # Example training data
+    training_data = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
+    target_data = np.array([[0.8, 0.7], [0.6, 0.5], [0.4, 0.3]])
 
-    jordan_nn = JordanNetwork(
-        hid_layer=HiddenLayer(
-            neurons=8,
-            activation=SigmoidActivation(),
-        ),
-        out_layer=OutputLayer(
-            outputs=len(y[0]),
-            activation=SigmoidActivation(),
-        ),
-        learning_rate=0.5,
-    )
+    # Train the network
+    mse_history = jnn.train(training_data, target_data, epochs=20000, verbose=True)
 
-    jordan_nn.train(x, y, epochs=5000, verbose=True)
-
-    print("Ожидаемые vs Предсказанные:")
-    for i in range(len(x)):
-        pred = jordan_nn.predict(x[i : i + 1])[0]
-        print(f"Input: {x[i]} | Expected: {y[i]} | Predicted: {pred}")
-
-    total_error = 0
-    for i in range(len(x)):
-        pred = jordan_nn.predict(x[i : i + 1])[0]
-        error = np.mean(np.abs(y[i] - pred))
-        total_error += error
-    print(f"Средняя ошибка: {total_error/len(x):.4f}")
+    # Визуализация
+    plt.plot(mse_history)
+    plt.title("Training MSE over epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE")
+    plt.grid(True)
+    plt.show()

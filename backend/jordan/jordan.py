@@ -32,8 +32,8 @@ class JordanRNN:
         self.w_ch = np.random.uniform(-0.5, 0.5, size=(m, n))
         self.w_ho = np.random.uniform(-0.5, 0.5, size=(n, m))
 
-        self.b_h = np.zeros(m)
-        self.b_o = np.zeros(n)
+        self.b_h = np.ones(m)
+        self.b_o = np.ones(n)
 
     def forward(self, x: np.ndarray):
         """
@@ -76,20 +76,20 @@ class JordanRNN:
             self.o_layer.states
         )
 
-        # # Рассчитываем значения невязок нейронов скрытого слоя
-        # lg_h: np.ndarray = self.h_layer.activation.derivative(self.h_layer.states) * (
-        #     np.dot(self.w_ho.T, lg_o)
-        #     + np.dot(
-        #         self.w_ho.T,
-        #         np.dot(self.w_ch.T, next_lg)
-        #         * self.o_layer.activation.derivative(self.o_layer.states),
-        #     )
-        # )
-
         # Рассчитываем значения невязок нейронов скрытого слоя
         lg_h: np.ndarray = self.h_layer.activation.derivative(self.h_layer.states) * (
-            np.dot(self.w_ho.T, lg_o) + np.dot(self.w_ch.T, next_lg)
+            np.dot(self.w_ho.T, lg_o)
+            + np.dot(
+                self.w_ho.T,
+                np.dot(self.w_ch.T, next_lg)
+                * self.o_layer.activation.derivative(self.o_layer.states),
+            )
         )
+
+        # # Рассчитываем значения невязок нейронов скрытого слоя
+        # lg_h: np.ndarray = self.h_layer.activation.derivative(self.h_layer.states) * (
+        #     np.dot(self.w_ho.T, lg_o) + np.dot(self.w_ch.T, next_lg)
+        # )
         return lg_o, lg_h
 
     def train(
@@ -133,7 +133,7 @@ class JordanRNN:
 
                 diff_w_ho += np.outer(lg_o, self.o_layer.inputs)
                 diff_w_ih += np.outer(lg_h, self.h_layer.inputs)
-                diff_w_ch += np.outer(next_lg, self.context)
+                diff_w_ch += np.outer(lg_h, self.context)
                 diff_b_h += lg_h
                 diff_b_o += lg_o
 

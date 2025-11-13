@@ -1,6 +1,6 @@
 import numpy as np
 
-from jordan.layers import HiddenLayer, OutputLayer
+from network.training import HiddenLayer, OutputLayer
 
 
 class JordanRNN:
@@ -98,7 +98,7 @@ class JordanRNN:
         targets: np.ndarray,
         epochs: int = 1000,
         verbose: bool = True,
-    ):
+    ) -> list[float]:
         self._initialize_weights(training[0])
         mse_history = []
 

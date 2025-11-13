@@ -1,14 +1,12 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from jordan.activation import (
+from network.training.activation import (
     SigmoidActivation,
-    ReLUActivation,
     LinearActivation,
-    TanhActivation,
 )
-from jordan.jordan import JordanRNN
-from jordan.layers import HiddenLayer, OutputLayer
+from network.jordan import JordanRNN
+from network.training.layers import HiddenLayer, OutputLayer
 
 if __name__ == "__main__":
     jnn = JordanRNN(

@@ -1,6 +1,6 @@
 import numpy as np
 
-from jordan.activation import ActivationProtocol
+from .activation import ActivationProtocol
 
 
 class Layer:

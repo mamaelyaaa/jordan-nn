@@ -1,6 +1,6 @@
 import numpy as np
 
-from jordan.activation import SigmoidActivation
+from network.training.activation import SigmoidActivation
 
 input_neurons = 2
 hidden_neurons = 3

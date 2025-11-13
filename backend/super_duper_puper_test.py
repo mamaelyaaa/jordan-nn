@@ -2,13 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from jordan.activation import (
-    SigmoidActivation,
+from network.training.activation import (
     LinearActivation,
     TanhActivation,
 )
-from jordan.jordan import JordanRNN
-from jordan.layers import HiddenLayer, OutputLayer
+from network.jordan import JordanRNN
+from network.training.layers import HiddenLayer, OutputLayer
 
 # Загрузка данных
 data = pd.read_csv("data.csv")

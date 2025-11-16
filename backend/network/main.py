@@ -11,11 +11,11 @@ if __name__ == "__main__":
     loader = DataLoader()
 
     # Загрузка и подготовка данных
-    raw_data = loader.load_raw_data("../data.csv")
+    raw_data = loader.load_raw_data("../amd.csv")
     print(f"Загружено данных: {len(raw_data)} строк")
 
     # Подготовка данных
-    data = loader.prepare_data(raw_data, test_rate=0.3)
+    data = loader.prepare_data(raw_data, test_rate=0.2)
 
     print(f"Размеры данных:")
     print(f"x_train_N: {data['x_train_N'].shape}")
@@ -24,9 +24,9 @@ if __name__ == "__main__":
     print(f"y_test_N: {data['y_test_N'].shape}")
 
     # Создание и обучение модели
-    hidden_layer = HiddenLayer(neurons=8, activation=TanhActivation())
-    output_layer = OutputLayer(neurons=1, activation=LinearActivation())
-    network = JordanRNN(hidden_layer, output_layer, learning_rate=0.003)
+    hidden_layer = HiddenLayer(neurons=5, activation=TanhActivation())
+    output_layer = OutputLayer(activation=LinearActivation())
+    network = JordanRNN(hidden_layer, output_layer, learning_rate=0.001)
 
     print("Обучение модели...")
 
@@ -70,7 +70,13 @@ if __name__ == "__main__":
     plt.plot(
         train_indices, train_predictions, label="Предсказания (обучение)", color="green"
     )
-    plt.plot(test_indices, test_predictions, label="Предсказания (тест)", color="red")
+    plt.plot(
+        test_indices,
+        test_predictions,
+        label="Предсказания (тест)",
+        color="red",
+        marker="o",
+    )
     plt.axvline(
         x=data["train_size"],
         color="black",

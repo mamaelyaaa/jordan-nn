@@ -1,3 +1,5 @@
+from typing import Literal, Optional
+
 import numpy as np
 
 from network.training import HiddenLayer, OutputLayer
@@ -19,34 +21,41 @@ class JordanRNN:
         self,
         hidden_layer: HiddenLayer,
         output_layer: OutputLayer,
-        learning_rate: float,
+        learning_rate: float = 0.001,
+        regularization: Optional[Literal["L2", "L1"]] = None,
     ):
         self.h_layer = hidden_layer
         self.o_layer = output_layer
         self.lr = learning_rate
-        self.context = np.zeros(self.o_layer.neurons)
+        self.context = None
+        self.context_size: Optional[int] = None
 
-    def _initialize_weights(self, x_sample: np.ndarray) -> None:
-        """Initialize weights with appropriate dimensions"""
-        # Ensure inputs are column vectors
+    def _initialize_weights(self, x_sample: np.ndarray, y_sample: np.ndarray) -> None:
+        """Инициализация весов модели"""
+
         if len(x_sample.shape) == 1:
             x_sample = x_sample.reshape(-1, 1)
 
-        k = x_sample.shape[0]  # Input size
-        m = self.h_layer.neurons  # Hidden layer size
-        n = self.o_layer.neurons  # Output layer size
+        if len(y_sample.shape) == 1:
+            y_sample = y_sample.reshape(-1, 1)
 
-        # Initialize weights with random values
-        self.w_ih = np.random.uniform(-1, 1, size=(m, k))
-        self.w_ch = np.random.uniform(-1, 1, size=(m, n))
-        self.w_ho = np.random.uniform(-1, 1, size=(n, m))
+        k = x_sample.shape[0]  # Количество входов модели
+        m = self.h_layer.neurons
+        n = y_sample.shape[0]  # Количество выходов модели
+
+        self.context_size = n
+        self.context = np.zeros((self.context_size, 1))
+
+        self.w_ih = np.random.uniform(-0.5, 0.5, size=(m, k))
+        self.w_ch = np.random.uniform(-0.5, 0.5, size=(m, n))
+        self.w_ho = np.random.uniform(-0.5, 0.5, size=(n, m))
 
         self.b_h = np.ones((m, 1))
         self.b_o = np.ones((n, 1))
 
     def _reset_context(self) -> None:
         """Сброс контекста"""
-        self.context = np.zeros((self.o_layer.neurons, 1))
+        self.context = np.zeros((self.context_size, 1))
 
     def forward(self, x: np.ndarray):
         """
@@ -112,7 +121,10 @@ class JordanRNN:
         verbose: bool = True,
     ) -> list[float]:
         """Обучение сети Джордана"""
-        self._initialize_weights(training[0])
+
+        self._initialize_weights(x_sample=training[0], y_sample=targets[0])
+        self.context = np.zeros((self.context_size, 1))
+
         mse_history = []
 
         for epoch in range(epochs):

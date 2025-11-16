@@ -4,9 +4,14 @@ from network.training import HiddenLayer, OutputLayer
 
 
 class JordanRNN:
+    """Рекуррентная нейронная сеть Джордана"""
+
+    # Веса между слоями
     w_ih: np.ndarray
     w_ch: np.ndarray
     w_ho: np.ndarray
+
+    # Bias'ы
     b_h: np.ndarray
     b_o: np.ndarray
 
@@ -23,28 +28,39 @@ class JordanRNN:
 
     def _initialize_weights(self, x_sample: np.ndarray) -> None:
         """Initialize weights with appropriate dimensions"""
-        k = len(x_sample)  # Assuming input size matches hidden layer
-        m = self.h_layer.neurons
-        n = self.o_layer.neurons
+        # Ensure inputs are column vectors
+        if len(x_sample.shape) == 1:
+            x_sample = x_sample.reshape(-1, 1)
+
+        k = x_sample.shape[0]  # Input size
+        m = self.h_layer.neurons  # Hidden layer size
+        n = self.o_layer.neurons  # Output layer size
 
         # Initialize weights with random values
-        self.w_ih = np.random.uniform(-0.5, 0.5, size=(m, k))
-        self.w_ch = np.random.uniform(-0.5, 0.5, size=(m, n))
-        self.w_ho = np.random.uniform(-0.5, 0.5, size=(n, m))
+        self.w_ih = np.random.uniform(-1, 1, size=(m, k))
+        self.w_ch = np.random.uniform(-1, 1, size=(m, n))
+        self.w_ho = np.random.uniform(-1, 1, size=(n, m))
 
-        self.b_h = np.ones(m)
-        self.b_o = np.ones(n)
+        self.b_h = np.ones((m, 1))
+        self.b_o = np.ones((n, 1))
+
+    def _reset_context(self) -> None:
+        """Сброс контекста"""
+        self.context = np.zeros((self.o_layer.neurons, 1))
 
     def forward(self, x: np.ndarray):
         """
         Прямой проход по нейронной сети
         """
+        if len(x.shape) == 1:
+            x = x.reshape(-1, 1)
+
         self.h_layer.inputs = x
 
         # Рассчитываем состояния нейронов в скрытом слое
         s_h: np.ndarray = (
             np.dot(self.w_ih, self.h_layer.inputs)
-            + (np.dot(self.w_ch, self.context))
+            + np.dot(self.w_ch, self.context)
             + self.b_h
         )
         self.h_layer.states = s_h
@@ -86,10 +102,6 @@ class JordanRNN:
             )
         )
 
-        # # Рассчитываем значения невязок нейронов скрытого слоя
-        # lg_h: np.ndarray = self.h_layer.activation.derivative(self.h_layer.states) * (
-        #     np.dot(self.w_ho.T, lg_o) + np.dot(self.w_ch.T, next_lg)
-        # )
         return lg_o, lg_h
 
     def train(
@@ -99,6 +111,7 @@ class JordanRNN:
         epochs: int = 1000,
         verbose: bool = True,
     ) -> list[float]:
+        """Обучение сети Джордана"""
         self._initialize_weights(training[0])
         mse_history = []
 
@@ -111,11 +124,8 @@ class JordanRNN:
             diff_b_o: np.ndarray = np.zeros_like(self.b_o)
 
             # Следующая невязка
-            next_lg: np.ndarray = np.zeros(self.h_layer.neurons)
-            self.context = np.zeros(self.o_layer.neurons)
-
-            epoch_predictions = []
-            epoch_targets = []
+            next_lg: np.ndarray = np.zeros((self.h_layer.neurons, 1))
+            self._reset_context()
 
             mse_samples = []
 
@@ -125,8 +135,9 @@ class JordanRNN:
 
                 mse_samples.append(np.mean((targets[i] - y_exp) ** 2))
 
-                epoch_predictions.append(y_exp.copy())
-                epoch_targets.append(targets[i].copy())
+                # Рассчет MSE
+                mse = np.mean((targets[i] - y_exp) ** 2)
+                mse_samples.append(mse)
 
                 lg_o, lg_h = self.bptt(y_exp, targets[i], next_lg)
                 next_lg = lg_h
@@ -154,4 +165,6 @@ class JordanRNN:
         return mse_history
 
     def predict(self, x: np.ndarray):
+        """Предсказание для одного входного вектора"""
+        self._reset_context()
         return self.forward(x)

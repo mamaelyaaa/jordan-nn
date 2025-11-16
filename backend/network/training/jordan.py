@@ -24,10 +24,18 @@ class JordanRNN:
         learning_rate: float = 0.001,
         regularization: Optional[Literal["L2", "L1"]] = None,
     ):
+        """
+        :param hidden_layer: Скрытый слой
+        :param output_layer: Выходной слой
+        :param learning_rate: Скорость обучения
+        :param regularization: Регуляризация
+        """
         self.h_layer = hidden_layer
         self.o_layer = output_layer
         self.lr = learning_rate
-        self.context = None
+
+        # Создаем контекст
+        self.context: Optional[np.ndarray] = None
         self.context_size: Optional[int] = None
 
     def _initialize_weights(self, x_sample: np.ndarray, y_sample: np.ndarray) -> None:
@@ -46,12 +54,12 @@ class JordanRNN:
         self.context_size = n
         self.context = np.zeros((self.context_size, 1))
 
-        self.w_ih = np.random.uniform(-0.5, 0.5, size=(m, k))
-        self.w_ch = np.random.uniform(-0.5, 0.5, size=(m, n))
-        self.w_ho = np.random.uniform(-0.5, 0.5, size=(n, m))
+        self.w_ih = np.random.uniform(-1, 1, size=(m, k))
+        self.w_ch = np.random.uniform(-1, 1, size=(m, n))
+        self.w_ho = np.random.uniform(-1, 1, size=(n, m))
 
-        self.b_h = np.ones((m, 1))
-        self.b_o = np.ones((n, 1))
+        self.b_h = np.zeros((m, 1))
+        self.b_o = np.zeros((n, 1))
 
     def _reset_context(self) -> None:
         """Сброс контекста"""

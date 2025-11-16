@@ -36,12 +36,7 @@ class SigmoidActivation:
         self._saturation = saturation
 
     def calculate(self, x: np.ndarray) -> np.ndarray:
-        return np.array(
-            [
-                1 / (1 + np.exp(-self._saturation * (x[i] - self._t)))
-                for i in range(len(x))
-            ]
-        )
+        return 1 / (1 + np.exp(-self._saturation * (x - self._t)))
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
         return self._saturation * self.calculate(x) * (1 - self.calculate(x))
@@ -55,12 +50,7 @@ class TanhActivation:
         self._t = t
 
     def calculate(self, x: np.ndarray) -> np.ndarray:
-        return np.array(
-            [
-                2 / (1 + np.exp(-self._saturation * (x[i] - self._t))) - 1
-                for i in range(len(x))
-            ]
-        )
+        return 2 / (1 + np.exp(-self._saturation * (x - self._t))) - 1
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
         return self._saturation / 2 * (1 - self.calculate(x)) ** 2

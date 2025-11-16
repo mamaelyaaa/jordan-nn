@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from network.training.jordan import JordanRNN
 from loader import DataLoader
-from network.training import SigmoidActivation, TanhActivation, ReLUActivation
-from training import HiddenLayer, OutputLayer, LinearActivation
+from training import HiddenLayer, OutputLayer, LinearActivation, TanhActivation
+from training.jordan import JordanRNN
+
 
 if __name__ == "__main__":
     # Инициализация загрузчика данных
@@ -24,9 +24,11 @@ if __name__ == "__main__":
     print(f"y_test_N: {data['y_test_N'].shape}")
 
     # Создание и обучение модели
-    hidden_layer = HiddenLayer(neurons=5, activation=TanhActivation())
-    output_layer = OutputLayer(activation=LinearActivation())
-    network = JordanRNN(hidden_layer, output_layer, learning_rate=0.001)
+    network = JordanRNN(
+        HiddenLayer(neurons=8, activation=TanhActivation()),
+        OutputLayer(activation=LinearActivation()),
+        learning_rate=0.0001,
+    )
 
     print("Обучение модели...")
 
@@ -75,7 +77,6 @@ if __name__ == "__main__":
         test_predictions,
         label="Предсказания (тест)",
         color="red",
-        marker="o",
     )
     plt.axvline(
         x=data["train_size"],

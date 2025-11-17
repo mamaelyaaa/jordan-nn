@@ -33,6 +33,7 @@ class JordanRNN:
         self.h_layer = hidden_layer
         self.o_layer = output_layer
         self.lr = learning_rate
+        self.regularization = regularization
 
         # Создаем контекст
         self.context: Optional[np.ndarray] = None
@@ -52,7 +53,7 @@ class JordanRNN:
         n = y_sample.shape[0]  # Количество выходов модели
 
         self.context_size = n
-        self.context = np.zeros((self.context_size, 1))
+        self.context = np.zeros((n, 1))
 
         self.w_ih = np.random.uniform(-1, 1, size=(m, k))
         self.w_ch = np.random.uniform(-1, 1, size=(m, n))
@@ -60,6 +61,9 @@ class JordanRNN:
 
         self.b_h = np.zeros((m, 1))
         self.b_o = np.zeros((n, 1))
+
+        # self.b_h = np.random.uniform(-1, 1, size=(m, 1))
+        # self.b_o = np.random.uniform(-1, 1, size=(n, 1))
 
     def _reset_context(self) -> None:
         """Сброс контекста"""
@@ -131,8 +135,6 @@ class JordanRNN:
         """Обучение сети Джордана"""
 
         self._initialize_weights(x_sample=training[0], y_sample=targets[0])
-        self.context = np.zeros((self.context_size, 1))
-
         mse_history = []
 
         for epoch in range(epochs):
@@ -153,8 +155,6 @@ class JordanRNN:
             for i in range(len(training)):
                 y_exp = self.forward(training[i])
 
-                mse_samples.append(np.mean((targets[i] - y_exp) ** 2))
-
                 # Рассчет MSE
                 mse = np.mean((targets[i] - y_exp) ** 2)
                 mse_samples.append(mse)
@@ -168,7 +168,17 @@ class JordanRNN:
                 diff_b_h += lg_h
                 diff_b_o += lg_o
 
+                # Обновление контекста для следующего шага
+                # self.context = targets[i].reshape(-1, 1)
                 self.context = y_exp.copy()
+
+            # Нормализация градиентов по размеру выборки
+            n_samples = len(training)
+            diff_w_ho /= n_samples
+            diff_w_ih /= n_samples
+            diff_w_ch /= n_samples
+            diff_b_h /= n_samples
+            diff_b_o /= n_samples
 
             self.w_ho += self.lr * diff_w_ho
             self.w_ih += self.lr * diff_w_ih
@@ -188,3 +198,13 @@ class JordanRNN:
         """Предсказание для одного входного вектора"""
         self._reset_context()
         return self.forward(x)
+
+    def predict_sequence(self, x_sequence: np.ndarray):
+        """Предсказание для последовательности с сохранением контекста"""
+        # self._reset_context()
+        predictions = []
+        for i in range(len(x_sequence)):
+            predict = self.forward(x_sequence[i])
+            predictions.append(predict.flatten().copy())
+            self.context = predict.copy()
+        return np.array(predictions)

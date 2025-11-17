@@ -2,7 +2,7 @@ from typing import Literal, Optional
 
 import numpy as np
 
-from network.training import HiddenLayer, OutputLayer
+from .structure.layers import HiddenLayer, OutputLayer
 
 
 class JordanRNN:

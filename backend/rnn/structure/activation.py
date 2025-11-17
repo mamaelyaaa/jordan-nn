@@ -63,10 +63,10 @@ class ReLUActivation:
         self._k = k
 
     def calculate(self, x: np.ndarray) -> np.ndarray:
-        return np.array([0 if sample <= 0 else self._k * sample for sample in x])
+        return np.maximum(0, x) * self._k
 
     def derivative(self, x: np.ndarray) -> np.ndarray:
-        return np.array([0 if sample <= 0 else self._k for sample in x])
+        return (x > 0).astype(float) * self._k
 
 
 class LinearActivation:

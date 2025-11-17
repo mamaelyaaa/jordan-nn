@@ -2,7 +2,7 @@ import numpy as np
 
 
 class StandardScaler:
-    """Ручная реализация StandardScaler"""
+    """Класс нормализации и денормализации"""
 
     def __init__(self):
         self._mean = None

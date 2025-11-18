@@ -7,9 +7,8 @@ from rnn.jordan import JordanRNN
 from rnn.prepare.loader import DataLoader, Dataset
 from rnn.structure.activation import (
     LinearActivation,
-    TanhActivation,
     SigmoidActivation,
-    ReLUActivation,
+    TanhActivation,
 )
 from rnn.structure.layers import HiddenLayer, OutputLayer
 
@@ -21,11 +20,11 @@ if __name__ == "__main__":
     loader = DataLoader()
 
     # Загрузка и подготовка данных
-    raw_data = loader.load_raw_data(DATA_DIR / "amd.csv")
+    raw_data = loader.load_raw_data(DATA_DIR / "apple.csv")
     print(f"Загружено данных: {len(raw_data)} строк")
 
     # Подготовка данных
-    dataset: Dataset = loader.prepare_data(raw_data, test_rate=0.25)
+    dataset: Dataset = loader.prepare_data(raw_data, test_rate=0.3)
 
     print(f"Размеры данных:")
     print(f"x_train_N: {dataset.x_train_N.shape}")
@@ -35,9 +34,9 @@ if __name__ == "__main__":
 
     # Создание и обучение модели
     network = JordanRNN(
-        HiddenLayer(neurons=5, activation=SigmoidActivation(saturation=0.4)),
+        HiddenLayer(neurons=12, activation=TanhActivation()),
         OutputLayer(activation=LinearActivation()),
-        learning_rate=0.001,
+        learning_rate=0.1,
     )
 
     print("Обучение модели...")
@@ -45,7 +44,7 @@ if __name__ == "__main__":
     mse_history = network.train(
         training=dataset.x_train_N,
         targets=dataset.y_train_N,
-        epochs=1000,
+        epochs=800,
         verbose=True,
     )
 
@@ -53,16 +52,8 @@ if __name__ == "__main__":
     print("Создание предсказаний...")
 
     # Предсказания для обучающей выборки
-    train_predictions_N = []
-    for i in range(len(dataset.x_train_N)):
-        predict = network.predict(dataset.x_train_N[i])
-        train_predictions_N.append(predict.flatten()[0])
-
-    # Предсказания для тестовой выборки
-    test_predictions_N = []
-    for i in range(len(dataset.x_test_N)):
-        predict = network.predict(dataset.x_test_N[i])
-        test_predictions_N.append(predict.flatten()[0])
+    train_predictions_N = network.predict_sequence(dataset.x_train_N)
+    test_predictions_N = network.predict_sequence(dataset.x_test_N)
 
     # Обратное преобразование к исходному масштабу
     train_predictions = loader.denormalize_predictions(np.array(train_predictions_N))
@@ -83,13 +74,18 @@ if __name__ == "__main__":
         alpha=0.7,
     )
     plt.plot(
-        train_indices, train_predictions, label="Предсказания (обучение)", color="green"
+        train_indices,
+        train_predictions,
+        label="Предсказания (обучение)",
+        color="green",
+        linewidth=2,
     )
     plt.plot(
         test_indices,
         test_predictions,
         label="Предсказания (тест)",
         color="red",
+        linewidth=2,
     )
     plt.axvline(
         x=dataset.train_size,
@@ -102,6 +98,5 @@ if __name__ == "__main__":
     plt.title("Предсказания цены Close - общий вид")
     plt.legend()
     plt.grid(True, alpha=0.3)
-
     plt.tight_layout()
     plt.show()

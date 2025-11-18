@@ -169,7 +169,6 @@ class JordanRNN:
                 diff_b_o += lg_o
 
                 # Обновление контекста для следующего шага
-                # self.context = targets[i].reshape(-1, 1)
                 self.context = y_exp.copy()
 
             # Нормализация градиентов по размеру выборки
@@ -201,7 +200,7 @@ class JordanRNN:
 
     def predict_sequence(self, x_sequence: np.ndarray):
         """Предсказание для последовательности с сохранением контекста"""
-        # self._reset_context()
+        self._reset_context()
         predictions = []
         for i in range(len(x_sequence)):
             predict = self.forward(x_sequence[i])

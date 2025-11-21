@@ -7,10 +7,10 @@ from rnn.jordan import JordanRNN
 from rnn.prepare.test_loader import DataLoader, Dataset
 from rnn.structure.activation import (
     LinearActivation,
-    SigmoidActivation,
     TanhActivation,
 )
 from rnn.structure.layers import HiddenLayer, OutputLayer
+from rnn.structure.regularizer import L2, L1
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -37,22 +37,28 @@ if __name__ == "__main__":
     dataset: Dataset = loader.prepare_data(
         raw_data,
         features=[
+            "ema_14",
+            # "rsi_14",
             "close_rel",
             "pct_return",
             "low_rel",
             "high_rel",
             "volatility_abs",
-            "ema_14",
         ],
         target=["target_close_1d"],
         test_rate=0.3,
     )
 
+    hidden_layer = HiddenLayer(neurons=128, activation=TanhActivation())
+    output_layer = OutputLayer()
+    learning_rate = 0.003
+
     # Создание и обучение модели
     network = JordanRNN(
-        HiddenLayer(neurons=64, activation=TanhActivation()),
-        OutputLayer(activation=LinearActivation()),
-        learning_rate=0.003,
+        hidden_layer=hidden_layer,
+        output_layer=output_layer,
+        learning_rate=learning_rate,
+        # regularization=L2(lm=learning_rate),
     )
 
     print("Обучение модели...")

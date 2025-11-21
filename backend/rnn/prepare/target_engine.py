@@ -28,8 +28,6 @@ class TargetEngine:
             # БОЛЕЕ СЛОЖНЫЕ ТАРГЕТЫ
             "target_volatility_1d": self.target_volatility_1d,
             "target_direction_1d": self.target_direction_1d,
-            # МОЖНО ДОБАВИТЬ N-дневные ТАРГЕТЫ
-            "target_log_return_5d": lambda df: self.target_log_return(df, horizon=5),
         }
 
     def build_target(
@@ -83,11 +81,3 @@ class TargetEngine:
         ret = df["Close"].pct_change().shift(-1)
         direction = np.sign(ret)
         return direction, EmptyScaler()
-
-    @staticmethod
-    def target_log_return(
-        df: pd.DataFrame, horizon: int = 5
-    ) -> Tuple[pd.Series, ScalerProtocol]:
-        """Лог-доходность за N дней вперёд"""
-        s = np.log(df["Close"].shift(-horizon) / df["Close"])
-        return s, EmptyScaler()

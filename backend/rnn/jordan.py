@@ -1,28 +1,29 @@
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 import numpy as np
 
 from .structure.layers import HiddenLayer, OutputLayer
+from .structure.regularizer import RegularizerProtocol, NoRegularizer
 
 
 class JordanRNN:
     """Рекуррентная нейронная сеть Джордана"""
 
-    # Веса между слоями
-    w_ih: np.ndarray
-    w_ch: np.ndarray
-    w_ho: np.ndarray
-
-    # Bias'ы
-    b_h: np.ndarray
-    b_o: np.ndarray
+    @dataclass
+    class Gradients:
+        w_ih: np.ndarray
+        w_ch: np.ndarray
+        w_ho: np.ndarray
+        b_h: np.ndarray
+        b_o: np.ndarray
 
     def __init__(
         self,
         hidden_layer: HiddenLayer,
         output_layer: OutputLayer,
-        learning_rate: float = 0.001,
-        regularization: Optional[Literal["L2", "L1"]] = None,
+        learning_rate: float,
+        regularization: Optional[RegularizerProtocol] = None,
     ):
         """
         :param hidden_layer: Скрытый слой
@@ -33,7 +34,7 @@ class JordanRNN:
         self.h_layer = hidden_layer
         self.o_layer = output_layer
         self.lr = learning_rate
-        self.regularization = regularization
+        self.regularizer = regularization or NoRegularizer()
 
         # Создаем контекст
         self.context: Optional[np.ndarray] = None
@@ -42,11 +43,8 @@ class JordanRNN:
     def _initialize_weights(self, x_sample: np.ndarray, y_sample: np.ndarray) -> None:
         """Инициализация весов модели"""
 
-        if len(x_sample.shape) == 1:
-            x_sample = x_sample.reshape(-1, 1)
-
-        if len(y_sample.shape) == 1:
-            y_sample = y_sample.reshape(-1, 1)
+        x_sample = x_sample.reshape(-1, 1) if x_sample.ndim == 1 else x_sample
+        y_sample = y_sample.reshape(-1, 1) if y_sample.ndim == 1 else y_sample
 
         k = x_sample.shape[0]  # Количество входов модели
         m = self.h_layer.neurons
@@ -55,15 +53,12 @@ class JordanRNN:
         self.context_size = n
         self.context = np.zeros((n, 1))
 
-        self.w_ih = np.random.uniform(-1, 1, size=(m, k))
-        self.w_ch = np.random.uniform(-1, 1, size=(m, n))
-        self.w_ho = np.random.uniform(-1, 1, size=(n, m))
+        self.w_ih = np.random.uniform(-0.5, 0.5, size=(m, k))
+        self.w_ch = np.random.uniform(-0.5, 0.5, size=(m, n))
+        self.w_ho = np.random.uniform(-0.5, 0.5, size=(n, m))
 
         self.b_h = np.zeros((m, 1))
         self.b_o = np.zeros((n, 1))
-
-        # self.b_h = np.random.uniform(-1, 1, size=(m, 1))
-        # self.b_o = np.random.uniform(-1, 1, size=(n, 1))
 
     def _reset_context(self) -> None:
         """Сброс контекста"""
@@ -138,12 +133,8 @@ class JordanRNN:
         mse_history = []
 
         for epoch in range(epochs):
-            # Матрица поправок весовых коэффициентов
-            diff_w_ho: np.ndarray = np.zeros_like(self.w_ho)
-            diff_w_ih: np.ndarray = np.zeros_like(self.w_ih)
-            diff_w_ch: np.ndarray = np.zeros_like(self.w_ch)
-            diff_b_h: np.ndarray = np.zeros_like(self.b_h)
-            diff_b_o: np.ndarray = np.zeros_like(self.b_o)
+            # Инициализируем матрицу градиентов
+            gradients = self._init_gradients()
 
             # Следующая невязка
             next_lg: np.ndarray = np.zeros((self.h_layer.neurons, 1))
@@ -162,28 +153,16 @@ class JordanRNN:
                 lg_o, lg_h = self.bptt(y_exp, targets[i], next_lg)
                 next_lg = lg_h
 
-                diff_w_ho += np.outer(lg_o, self.o_layer.inputs)
-                diff_w_ih += np.outer(lg_h, self.h_layer.inputs)
-                diff_w_ch += np.outer(lg_h, self.context)
-                diff_b_h += lg_h
-                diff_b_o += lg_o
+                # Накапливание градиентов
+                self._accumulate_gradients(gradients, lg_o, lg_h)
 
                 # Обновление контекста для следующего шага
                 self.context = y_exp.copy()
 
             # Нормализация градиентов по размеру выборки
-            n_samples = len(training)
-            diff_w_ho /= n_samples
-            diff_w_ih /= n_samples
-            diff_w_ch /= n_samples
-            diff_b_h /= n_samples
-            diff_b_o /= n_samples
-
-            self.w_ho += self.lr * diff_w_ho
-            self.w_ih += self.lr * diff_w_ih
-            self.w_ch += self.lr * diff_w_ch
-            self.b_h += self.lr * diff_b_h
-            self.b_o += self.lr * diff_b_o
+            self._normalize_gradients(gradients, n_samples=len(training))
+            # Обновление весов градиентов
+            self._update_weights(gradients)
 
             mse = np.average(mse_samples)
             mse_history.append(mse)
@@ -192,6 +171,44 @@ class JordanRNN:
                 print(f"Epoch {epoch + 1}, MSE: {mse:.6f}")
 
         return mse_history
+
+    def _init_gradients(self) -> "Gradients":
+        """Инициализирует градиенты"""
+
+        return self.Gradients(
+            w_ho=np.zeros_like(self.w_ho),
+            w_ih=np.zeros_like(self.w_ih),
+            w_ch=np.zeros_like(self.w_ch),
+            b_h=np.zeros_like(self.b_h),
+            b_o=np.zeros_like(self.b_o),
+        )
+
+    def _accumulate_gradients(
+        self,
+        gradients: Gradients,
+        lg_o: np.ndarray,
+        lg_h: np.ndarray,
+    ) -> "Gradients":
+        gradients.w_ho += np.outer(lg_o, self.o_layer.inputs)
+        gradients.w_ih += np.outer(lg_h, self.h_layer.inputs)
+        gradients.w_ch += np.outer(lg_h, self.context)
+        gradients.b_h += lg_h
+        gradients.b_o += lg_o
+        return gradients
+
+    @staticmethod
+    def _normalize_gradients(g: Gradients, n_samples: int) -> None:
+        for key in g.__dict__:
+            g.__dict__[key] /= n_samples
+        return
+
+    def _update_weights(self, g: Gradients) -> None:
+        self.w_ho += self.lr * (g.w_ho - self.regularizer.compute_gradient(self.w_ho))
+        self.w_ih += self.lr * (g.w_ih - self.regularizer.compute_gradient(self.w_ih))
+        self.w_ch += self.lr * (g.w_ch - self.regularizer.compute_gradient(self.w_ch))
+        self.b_h += self.lr * g.b_h
+        self.b_o += self.lr * g.b_o
+        return
 
     def predict(self, x: np.ndarray):
         """Предсказание для одного входного вектора"""

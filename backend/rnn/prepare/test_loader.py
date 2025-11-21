@@ -34,7 +34,7 @@ class DataLoader:
         self.features_scalers: dict[str, ScalerProtocol] = {}
         self.feature_engine = FeatureEngine()
         self.target_engine = TargetEngine()
-        self.target_scalers = None  # Добавляем для денормализации
+        self.target_scalers = None  # Для денормализации
 
     @staticmethod
     def load_raw_data(source: Path | str) -> pd.DataFrame:

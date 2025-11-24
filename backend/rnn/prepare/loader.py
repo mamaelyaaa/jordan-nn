@@ -6,7 +6,7 @@ import pandas as pd
 
 from . import FeaturesType, TargetType
 from .feature_engine import FeatureEngine
-from .on_review.scaler import ScalerProtocol
+from .scaler import ScalerProtocol
 from .target_engine import TargetEngine
 
 

@@ -3,12 +3,8 @@ from typing import Dict, Protocol, Tuple
 import numpy as np
 import pandas as pd
 
-from rnn.prepare import TargetType
-from rnn.prepare.on_review.scaler import (
-    ScalerProtocol,
-    StandardScaler,
-    EmptyScaler,
-)
+from . import TargetType
+from .scaler import ScalerProtocol, EmptyScaler, StandardScaler
 
 
 class TargetFunc(Protocol):

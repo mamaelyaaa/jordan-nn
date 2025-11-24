@@ -1,15 +1,10 @@
-from dataclasses import dataclass
-from typing import Dict, Protocol, List, Tuple, Literal
+from typing import Dict, Protocol, Tuple
+
 import numpy as np
 import pandas as pd
 
-from rnn.prepare import FeaturesType
-from rnn.prepare.on_review.scaler import (
-    ScalerProtocol,
-    StandardScaler,
-    EmptyScaler,
-    MinMaxScaler,
-)
+from . import FeaturesType
+from .scaler import ScalerProtocol, EmptyScaler, MinMaxScaler, StandardScaler
 
 
 class FeatureFunc(Protocol):

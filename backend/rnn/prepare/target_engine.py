@@ -1,15 +1,13 @@
-from typing import Dict, Protocol, List, Tuple, TypeVar
+from typing import Dict, Protocol, Tuple
+
 import numpy as np
 import pandas as pd
 
 from rnn.prepare import TargetType
-from rnn.prepare.normalizer import PercentScaler
 from rnn.prepare.on_review.scaler import (
     ScalerProtocol,
     StandardScaler,
     EmptyScaler,
-    MinMaxScaler,
-    PercentDevScaler,
 )
 
 

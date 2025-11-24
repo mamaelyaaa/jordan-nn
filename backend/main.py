@@ -1,44 +1,23 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-from rnn.jordan import JordanRNN
-from rnn.prepare.test_loader import DataLoader, Dataset
+from rnn.manager import RNNManager
 from rnn.structure.activation import (
-    LinearActivation,
-    TanhActivation,
+    TanhActivation,  # type: ignore
+    SigmoidActivation,  # type: ignore
+    LinearActivation,  # type: ignore
+    ReLUActivation,  # type: ignore
 )
-from rnn.structure.layers import HiddenLayer, OutputLayer
-from rnn.structure.regularizer import L2, L1
+from rnn.structure.regularizer import (
+    L2,  # type: ignore
+    L1,  # type: ignore
+)
 
-DATA_DIR = Path(__file__).parent / "data"
-
-
-def restore_prices(start_price: float, log_returns: np.ndarray):
-    """
-    Восстанавливает цены по лог-доходностям.
-    """
-    prices = [start_price]
-    for lr in log_returns:
-        prices.append(prices[-1] * np.exp(lr))
-    return np.array(prices[1:])
-
+STOCKS_DIR = Path(__file__).parent / "stocks"
 
 if __name__ == "__main__":
-    # Инициализация загрузчика данных
-    loader = DataLoader()
-
-    # Загрузка и подготовка данных
-    raw_data = loader.load_raw_data(DATA_DIR / "apple.csv")
-    print(f"Загружено данных: {len(raw_data)} строк")
-
-    # Подготовка данных
-    dataset: Dataset = loader.prepare_data(
-        raw_data,
+    manager = RNNManager(
         features=[
             "ema_14",
-            # "rsi_14",
             "close_rel",
             "pct_return",
             "low_rel",
@@ -46,87 +25,21 @@ if __name__ == "__main__":
             "volatility_abs",
         ],
         target=["target_close_1d"],
-        test_rate=0.3,
+        hidden_neurons=128,
+        hidden_activation=TanhActivation(),
+        learning_rate=0.003,
+        regularization=L2(lm=0.0007),
     )
 
-    hidden_layer = HiddenLayer(neurons=128, activation=TanhActivation())
-    output_layer = OutputLayer()
-    learning_rate = 0.003
+    # Подготавливаем выборку
+    stock = STOCKS_DIR / "apple.csv"
+    raw = manager.load_and_prepare(source=stock, test_rate=0.3)
 
-    # Создание и обучение модели
-    network = JordanRNN(
-        hidden_layer=hidden_layer,
-        output_layer=output_layer,
-        learning_rate=learning_rate,
-        # regularization=L2(lm=learning_rate),
-    )
+    # Обучаем модель
+    mse = manager.train(epochs=100)
 
-    print("Обучение модели...")
+    # Прогнозируем значения тестовой выборки (вместе с обучающей)
+    predictions = manager.predict()
 
-    mse_history = network.train(
-        training=dataset.x_train_N,
-        targets=dataset.y_train_N,
-        epochs=1000,
-        verbose=True,
-    )
-
-    # Предсказания для всей выборки
-    print("Создание предсказаний...")
-
-    # Предсказания для обучающей выборки
-    train_predictions_N = network.predict_sequence(dataset.x_train_N)
-    test_predictions_N = network.predict_sequence(dataset.x_test_N)
-
-    # Обратное преобразование к исходному масштабу
-    train_predictions = loader.denormalize_predictions(np.array(train_predictions_N))
-    test_predictions = loader.denormalize_predictions(np.array(test_predictions_N))
-    #
-    # # --- Восстановление цен ---
-    # train_start = raw_data["Close"].iloc[1]
-    # train_close_predict = restore_prices(train_start, train_predictions.flatten())
-    #
-    # # начальная точка для теста — последняя цена train
-    # test_start = raw_data["Close"].iloc[dataset.train_size - 1]
-    # test_close_predict = restore_prices(test_start, test_predictions.flatten())
-    #
-    # print("Нормализованн    ые предсказания (первые 10):", train_predictions_N[:10])
-    # print("Денормализованные лог-доходности:", train_predictions[:10])
-
-    # Индексы для графиков
-    train_indices = range(1, len(train_predictions) + 1)
-    test_indices = range(
-        dataset.train_size + 1, dataset.train_size + len(test_predictions) + 1
-    )
-
-    # График Общий вид
-    plt.plot(
-        range(len(raw_data)),
-        raw_data["Close"],
-        label="Исходные данные",
-        color="blue",
-        alpha=0.7,
-    )
-    plt.plot(
-        train_indices,
-        train_predictions,
-        label="Предсказания (обучение)",
-        color="green",
-        linewidth=2,
-    )
-    plt.plot(
-        test_indices,
-        test_predictions,
-        label="Предсказания (тест)",
-        color="red",
-        linewidth=2,
-    )
-
-    plt.axvline(x=dataset.train_size, color="black", linestyle="--", label="Train/Test")
-
-    plt.xlabel("Дни")
-    plt.ylabel("Цена Close")
-    plt.title("Предсказания цены Close - общий вид")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+    # Строим графики
+    manager.plot_predict_graphic(predictions=predictions)

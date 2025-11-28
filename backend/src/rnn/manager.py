@@ -6,16 +6,16 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from rnn.jordan import JordanRNN
-from rnn.prepare import FeaturesType, TargetType
-from rnn.prepare.loader import Dataset, DataLoader
-from rnn.structure.activation import (
+from src.rnn.jordan import JordanRNN
+from src.rnn.prepare import FeaturesType, TargetType
+from src.rnn.prepare.loader import Dataset, DataLoader
+from src.rnn.structure.activation import (
     LinearActivation,
     TanhActivation,
     ActivationProtocol,
 )
-from rnn.structure.layers import HiddenLayer, OutputLayer
-from rnn.structure.regularizer import RegularizerProtocol, NoRegularizer
+from src.rnn.structure.layers import HiddenLayer, OutputLayer
+from src.rnn.structure.regularizer import RegularizerProtocol, NoRegularizer
 
 
 class RNNManager:

@@ -1,26 +1,26 @@
 from pathlib import Path
 
-from rnn.manager import RNNManager
-from rnn.structure.activation import (
+from manager import RNNManager
+from structure.activation import (
     TanhActivation,  # type: ignore
     # type: ignore
     # type: ignore
     # type: ignore
 )
-from rnn.structure.regularizer import (
+from structure.regularizer import (
     L2,  # type: ignore
-    # type: ignore
+    L1,  # type: ignore
 )
 
-STOCKS_DIR = Path(__file__).parent / "stocks"
+STOCKS_DIR = Path(__file__).parent.parent.parent / "stocks"
 
 if __name__ == "__main__":
     manager = RNNManager(
         features=[
             "ema_14",
+            "rsi_14",
             "close_rel",
             "pct_return",
-            # "close_rel",
             # "low_rel",
             # "high_rel",
             # "volatility_abs",

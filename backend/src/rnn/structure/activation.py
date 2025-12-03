@@ -1,6 +1,14 @@
+from enum import Enum
 from typing import Protocol
 
 import numpy as np
+
+
+class ActivationEnum(str, Enum):
+    TANH = "tanh"
+    SIGMOID = "sigmoid"
+    LINEAR = "linear"
+    RELU = "relu"
 
 
 class ActivationProtocol(Protocol):

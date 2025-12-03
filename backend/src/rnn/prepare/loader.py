@@ -45,8 +45,8 @@ class DataLoader:
     def prepare_data(
         self,
         df: pd.DataFrame,
-        features: list[FeaturesType],
-        target: list[TargetType],
+        features: list[FeaturesType | str],
+        target: list[TargetType | str],
         test_rate: float = 0.3,
     ) -> "Dataset":
         """Подготовка данных в формате вашего примера"""
@@ -66,7 +66,6 @@ class DataLoader:
         test_size = int(n * test_rate)
         train_size = n - test_size
 
-        close_all = df[["Close"]]
         close_train = df[["Close"]][:train_size][:-1]
         close_test = df[["Close"]][train_size:][:-1]
 
@@ -121,34 +120,5 @@ class DataLoader:
         target_name = next(iter(self.target_scalers))
         return self.target_scalers[target_name].denormalize(predictions_n)
 
-    # def denormalize_targets(
-    #     self, targets_n: np.ndarray, target_name: str = None
-    # ) -> np.ndarray:
-    #     """Обратное преобразование целей"""
-    #     return self.denormalize_predictions(targets_n, target_name)
-    #
-    # def denormalize_log_returns(
-    #     self, returns_normalized: np.ndarray, target_name: str = None
-    # ) -> np.ndarray:
-    #     """
-    #     Денормализация лог-доходностей, нормализованных как (x - mean) / std.
-    #     Возвращает массив тех же размеров.
-    #     """
-    #     if self.target_scalers is None:
-    #         raise ValueError(
-    #             "Скалеры не инициализированы. Сначала вызовите prepare_data"
-    #         )
-    #
-    #     if target_name is None:
-    #         target_name = next(iter(self.target_scalers.keys()))
-    #
-    #     scaler = self.target_scalers[target_name]
-    #
-    #     # Предполагаем, что скалер имеет атрибуты _mean и _std
-    #     if hasattr(scaler, "_mean") and hasattr(scaler, "_std"):
-    #         mu = scaler._mean  # среднее таргета (лог доходности)
-    #         sigma = scaler._std  # std таргета
-    #         return returns_normalized * sigma + mu
-    #     else:
-    #         # Если скалер не имеет этих атрибутов, используем общий метод
-    #         return scaler.denormalize(returns_normalized)
+
+dataloader = DataLoader()

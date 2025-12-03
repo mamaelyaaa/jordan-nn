@@ -1,6 +1,12 @@
+from enum import Enum
 from typing import Protocol
 
 import numpy as np
+
+
+class RegularizerEnum(str, Enum):
+    L1 = "L1"
+    L2 = "L2"
 
 
 class RegularizerProtocol(Protocol):

@@ -1,6 +1,7 @@
+import asyncio
 import dataclasses
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable, Any
 
 import numpy as np
 import pandas as pd
@@ -23,33 +24,65 @@ class RNNManager:
 
     def __init__(
         self,
-        target: list[TargetType],
-        features: list[FeaturesType],
+        target: Optional[list[TargetType | str]] = None,
+        features: Optional[list[FeaturesType | str]] = None,
         learning_rate: float = 0.003,
-        hidden_activation: ActivationProtocol = TanhActivation(),
+        hidden_activation: Optional[ActivationProtocol] = None,
         hidden_neurons: int = 128,
-        regularization: RegularizerProtocol = NoRegularizer(),
+        regularization: Optional[RegularizerProtocol] = None,
     ):
         self.features = features
         self.target = target
         self.learning_rate = learning_rate
-        self.hidden_activation = hidden_activation
+        self.hidden_activation = hidden_activation or TanhActivation()
         self.hidden_neurons = hidden_neurons
-        self.regularization = regularization
+        self.regularization = regularization or NoRegularizer()
 
         # Компоненты
         self.loader = DataLoader()
         self.dataset: Optional[Dataset] = None
+        self._raw_data: Optional[pd.DataFrame] = None
 
         # Модель
-        self.model = JordanRNN(
-            hidden_layer=HiddenLayer(
-                neurons=hidden_neurons, activation=hidden_activation
-            ),
-            output_layer=OutputLayer(activation=LinearActivation()),
-            learning_rate=learning_rate,
-            regularization=regularization,
-        )
+        self.model: Optional[JordanRNN] = None
+
+        # Модель
+        # self.model: Optional[JordanRNN] = JordanRNN(
+        #     hidden_layer=HiddenLayer(
+        #         neurons=hidden_neurons, activation=hidden_activation
+        #     ),
+        #     output_layer=OutputLayer(activation=LinearActivation()),
+        #     learning_rate=learning_rate,
+        #     regularization=regularization,
+        # )
+
+        # TODO Сделать метод инициализации модели
+
+    def set_config(
+        self,
+        target: Optional[list[TargetType | str]] = None,
+        features: Optional[list[FeaturesType | str]] = None,
+        learning_rate: Optional[float] = None,
+        hidden_activation: Optional[ActivationProtocol] = None,
+        hidden_neurons: Optional[int] = None,
+        regularization: Optional[RegularizerProtocol] = None,
+    ) -> None:
+        """
+        Установка конфигурации модели после инициализации.
+        """
+
+        if target is not None:
+            self.target = target
+        if features is not None:
+            self.features = features
+        if learning_rate is not None:
+            self.learning_rate = learning_rate
+        if hidden_activation is not None:
+            self.hidden_activation = hidden_activation
+        if hidden_neurons is not None:
+            self.hidden_neurons = hidden_neurons
+        if regularization is not None:
+            self.regularization = regularization
 
     def load_and_prepare(
         self, source: Path | str, test_rate: float = 0.3
@@ -61,16 +94,39 @@ class RNNManager:
         :return: Сырой датафрейм
         """
 
-        raw_data = self.loader.load_raw_data(source)
-        print(f"Загружено данных: {len(raw_data)} строк")
+        self._raw_data = self.loader.load_raw_data(source)
 
         self.dataset = self.loader.prepare_data(
-            raw_data,
+            df=self._raw_data,
             features=self.features,
             target=self.target,
             test_rate=test_rate,
         )
-        return raw_data
+        return self._raw_data
+
+    @property
+    def raw_data(self) -> pd.DataFrame:
+        return self._raw_data
+
+    @raw_data.setter
+    def raw_data(self, data: pd.DataFrame) -> None:
+        self._raw_data = data
+
+    def load_data(self, source: str | Path) -> None:
+        self._raw_data = self.loader.load_raw_data(source)
+        return
+
+    def prepare_data(self, raw_data: pd.DataFrame, test_rate: float = 0.3) -> "Dataset":
+        if raw_data is None:
+            raise ValueError("Нет данных для подготовки")
+
+        self.dataset = self.loader.prepare_data(
+            df=raw_data,
+            features=self.features,
+            target=self.target,
+            test_rate=test_rate,
+        )
+        return self.dataset
 
     def train(self, epochs: int = 1000) -> list[float]:
         """
@@ -167,3 +223,6 @@ class RNNManager:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.show()
+
+
+rnn_manager = RNNManager()

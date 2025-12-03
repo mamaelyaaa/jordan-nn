@@ -27,7 +27,7 @@ class TargetEngine:
     def build_target(
         self,
         df: pd.DataFrame,
-        target: list[TargetType],
+        target: list[TargetType | str],
     ) -> Tuple[pd.DataFrame, Dict[str, ScalerProtocol]]:
 
         targets_df = pd.DataFrame(index=df.index)

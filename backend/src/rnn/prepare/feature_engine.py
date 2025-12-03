@@ -1,13 +1,24 @@
+from enum import Enum
 from typing import Dict, Protocol, Tuple
 
 import numpy as np
 import pandas as pd
 
-from . import FeaturesType
 from .scaler import ScalerProtocol, EmptyScaler, MinMaxScaler, StandardScaler
 
 
-class FeatureFunc(Protocol):
+class FeaturesEnum(str, Enum):
+    CLOSE = "Close"
+    HIGH = "High"
+    LOW = "Low"
+    OPEN = "Open"
+    VOLATILITY = "Volatility"
+    RSI = "RSI"
+    EMA = "EMA"
+    SMA = "SMA"
+
+
+class FeatureProtocol(Protocol):
 
     def __call__(self, df: pd.DataFrame) -> Tuple[pd.Series, ScalerProtocol]:
         pass
@@ -16,7 +27,7 @@ class FeatureFunc(Protocol):
 class FeatureEngine:
 
     def __init__(self):
-        self.__feature_registry: Dict[str, FeatureFunc] = {
+        self.__feature_registry: Dict[str, FeatureProtocol] = {
             # Базовые
             "log_return": self.log_return,
             "pct_return": self.pct_return,
@@ -39,7 +50,7 @@ class FeatureEngine:
     def build_features(
         self,
         df: pd.DataFrame,
-        features: list[FeaturesType],
+        features: list[FeaturesEnum | str],
     ) -> tuple[pd.DataFrame, dict[str, ScalerProtocol]]:
 
         features_df = pd.DataFrame(index=df.index)

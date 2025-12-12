@@ -1,7 +1,6 @@
 import os
 from typing import Literal, Optional
 
-import pandas as pd
 from fastapi import APIRouter, Query, HTTPException, Path
 from starlette import status
 
@@ -29,7 +28,7 @@ async def get_available_stocks_list():
     "/{symbol}/history",
     response_model=StockResponseData,
     responses={
-        status.HTTP_404_NOT_FOUND: {
+        404: {
             "model": BaseSchemaResponse,
             "description": "Информация о компании не найдена",
         }
@@ -54,7 +53,8 @@ async def get_stock_history(
     """
     Получение данных об акциях компании. Необходимо для построения первичного графика
     """
-    file_path = f"{settings.files.stocks / symbol}.us.txt"
+    file_path = f"{settings.files.stocks / symbol.lower()}.us.txt"
+    print(file_path)
 
     try:
         raw_data = rnn_manager.loader.load_raw_data(source=file_path)

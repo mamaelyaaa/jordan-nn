@@ -1,87 +1,173 @@
-from fastapi import APIRouter, HTTPException
+# api/training/router.py
+import asyncio
+
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from starlette import status
 
-from rnn.manager import rnn_manager
-from rnn.prepare.feature_engine import FeaturesEnum
-from rnn.prepare.loader import Dataset
-from rnn.structure.activation import (
-    ActivationEnum,
-    ActivationProtocol,
-    TanhActivation,
-    ReLUActivation,
-    LinearActivation,
-    SigmoidActivation,
+from api.stocks.schemas import StockDailyData
+from api.training.schemas import (
+    TrainingResultsSchema,
+    SessionResponseSchema,
+    SessionSchema,
 )
-from rnn.structure.regularizer import RegularizerProtocol, L1, L2, RegularizerEnum
-from .schemas import TrainingRNNConfig, TrainingStartResponse
+from api.training.session import session_manager
+from api.training.service import training_service
+from api.websockets.schemas import TrainingStartResponse
+from config import settings
+from rnn.manager import rnn_manager
+from rnn.schemas import TrainingRNNConfig
+from schemas import BaseSchemaResponse
 
 router = APIRouter(prefix="/training", tags=["Обучение🔰"])
 
 
 @router.post("/start", response_model=TrainingStartResponse)
-async def start_training(train_config: TrainingRNNConfig):
-    """Старт обучения нейронной сети"""
+async def start_training(
+    train_config: TrainingRNNConfig, background_tasks: BackgroundTasks
+):
+    """
+    Старт обучения нейронной сети
 
-    # Маппинг признаков
-    features_map: dict[str, str] = {
-        FeaturesEnum.CLOSE: "close_rel",
-    }
+    Выводит уникальный id сессии, который нужно использовать для подключения к вебсокету
+    """
 
-    # Маппинг активационных функций
-    activation_map: dict[str, ActivationProtocol] = {
-        ActivationEnum.TANH: TanhActivation(),
-        ActivationEnum.SIGMOID: SigmoidActivation(),
-        ActivationEnum.LINEAR: LinearActivation(),
-        ActivationEnum.RELU: ReLUActivation(),
-    }
+    # Останавливаем предыдущую сессию, если есть
+    for session_id in list(session_manager.training_tasks.keys()):
+        await session_manager.stop_session(session_id)
 
-    # Маппинг регуляризатора
-    regularizer_map: dict[str, RegularizerProtocol] = {
-        RegularizerEnum.L1: L1(lm=train_config.regularizer_rate),
-        RegularizerEnum.L2: L2(lm=train_config.regularizer_rate),
-    }
-
-    # Устанавливаем необходимые значения для обучения модели
-    rnn_manager.set_config(
-        target=["target_close_1d"],
-        features=[features_map[feature] for feature in train_config.features],
-        learning_rate=train_config.learning_rate,
-        hidden_activation=activation_map[train_config.hidden_activation],
-        hidden_neurons=train_config.hidden_neurons,
-        regularization=regularizer_map[train_config.regularizer],
-    )
+    # Создаем новую сессию
+    session_id = await session_manager.create_session(train_config)
 
     try:
-        dataset: Dataset = rnn_manager.prepare_data(
-            raw_data=rnn_manager.raw_data,
-            test_rate=train_config.test_rate,
+        # Конвертируем конфиг в словарь для передачи в поток
+        config_dict = train_config.model_dump(exclude_none=True)
+
+        # Запускаем обучение в фоновой задаче
+        background_tasks.add_task(
+            training_service.run_training, session_id, config_dict
         )
 
-        # TODO Сделать обучение по эпохам с возможностью остановить, а так же отправлять события по типу вебсокетов
-
-        # rnn_manager.train(epochs=train_config.epochs)
+        # Сохраняем задачу в менеджере
+        session_manager.training_tasks[session_id] = asyncio.create_task(
+            training_service.run_training(session_id, config_dict)
+        )
 
         return TrainingStartResponse(
-            detail="Данные успешно подготовлены",
-            train_size=dataset.train_size,
-            test_size=dataset.test_size,
-            stock_symbol=train_config.stock_symbol.upper(),
+            session_id=session_id,
+            detail="Обучение успешно запущено",
         )
 
-    except ValueError:
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Нет данных для начала обучения. Для начала выполните подгрузку данных",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при запуске обучения: {str(e)}",
         )
 
 
-@router.post("/{session_id}/stop")
-async def stop_training(session_id: int):
-    """Остановка обучения"""
-    pass
+@router.get(
+    "/{session_id}/results",
+    response_model=TrainingResultsSchema,
+    responses={
+        404: {"model": BaseSchemaResponse, "description": "Сессия не найдена"},
+        400: {"model": BaseSchemaResponse, "description": "Обучение еще не завершено"},
+    },
+)
+async def get_training_results(session_id: str):
+    """
+    Получение результатов обучения с историческими данными
+
+    Запускается после остановки получения результатов от вебсокетов
+    """
+
+    session = await session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Сессия не найдена"
+        )
+
+    if session.status not in ["completed", "stopped", "error"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Обучение еще не завершено"
+        )
+
+    # Получаем символ акции из конфига сессии
+    stock_symbol = (
+        session.config.stock_symbol
+        if hasattr(session.config, "stock_symbol")
+        else "AAPL"
+    )
+
+    # Загружаем исторические данные
+    from rnn.manager import rnn_manager
+
+    try:
+        # Загружаем данные (они могут быть уже загружены)
+        if not hasattr(rnn_manager, "raw_data") or rnn_manager.raw_data is None:
+            file_path = f"{settings.files.stocks / stock_symbol.lower()}.us.txt"
+            rnn_manager.raw_data = rnn_manager.loader.load_raw_data(source=file_path)
+
+        # Берем последние N дней
+        days = session.config.days if hasattr(session.config, "days") else 365
+        raw_data = rnn_manager.raw_data.tail(days)
+
+        # Конвертируем в список словарей
+        data_list = raw_data.reset_index().to_dict("records")
+
+        # Форматируем для StockDailyData
+        formatted_data = []
+        for record in data_list:
+            # Приводим ключи к нужному формату
+            formatted_record = {
+                "Date": record.get("Date") if "Date" in record else record.get("index"),
+                "High": record.get("High"),
+                "Open": record.get("Open"),
+                "Close": record.get("Close"),
+                "Low": record.get("Low"),
+            }
+            formatted_data.append(StockDailyData(**formatted_record))
+
+        return {
+            "session_id": session_id,
+            "status": session.status,
+            "raw_data": formatted_data,
+            "loss_history": session.loss_history,
+            "predictions": session.predictions,
+        }
+
+    except Exception as e:
+        # Если не удалось загрузить данные, возвращаем без них
+        print(f"Не удалось загрузить исторические данные: {e}")
+        return {
+            "session_id": session_id,
+            "status": session.status,
+            "raw_data": [],
+            "loss_history": session.loss_history,
+            "predictions": session.predictions,
+        }
 
 
-@router.get("/{session_id}/results")
-async def get_predictions(session_id: int):
-    """Получение результатов обучения"""
-    pass
+@router.get("/sessions", response_model=SessionResponseSchema)
+async def list_sessions():
+    """Получение списка всех сессий"""
+
+    sessions_list = []
+    for session_id, session in session_manager.sessions.items():
+        sessions_list.append(
+            {
+                "session_id": session_id,
+                "status": session.status,
+                "stock_symbol": (
+                    session.config.stock_symbol
+                    if hasattr(session.config, "stock_symbol")
+                    else "unknown"
+                ),
+                "created_at": (
+                    session.start_time.isoformat() if session.start_time else None
+                ),
+            }
+        )
+
+    return SessionResponseSchema(
+        sessions=[SessionSchema.model_validate(session) for session in sessions_list],
+        total=len(sessions_list),
+    )

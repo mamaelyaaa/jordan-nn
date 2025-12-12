@@ -8,14 +8,21 @@ from .scaler import ScalerProtocol, EmptyScaler, MinMaxScaler, StandardScaler
 
 
 class FeaturesEnum(str, Enum):
-    CLOSE = "Close"
-    HIGH = "High"
-    LOW = "Low"
-    OPEN = "Open"
-    VOLATILITY = "Volatility"
-    RSI = "RSI"
-    EMA = "EMA"
-    SMA = "SMA"
+    # Базовые
+    LOG_RETURN = "log_return"
+    PCT_RETURN = "pct_return"
+    # Свечные
+    CLOSE = "close"
+    HIGH = "high"
+    LOW = "low"
+    CANDLE_BODY = "candle_body"
+    # Индикаторы
+    RSI14 = "rsi_14"
+    EMA14 = "ema_14"
+    SMA14 = "sma_14"
+    HV14 = "hv_14"
+    # Волатильность
+    VOLATILITY = "volatility"
 
 
 class FeatureProtocol(Protocol):
@@ -27,34 +34,37 @@ class FeatureProtocol(Protocol):
 class FeatureEngine:
 
     def __init__(self):
-        self.__feature_registry: Dict[str, FeatureProtocol] = {
+        self.__feature_registry: Dict[FeaturesEnum, FeatureProtocol] = {
             # Базовые
-            "log_return": self.log_return,
-            "pct_return": self.pct_return,
+            FeaturesEnum.LOG_RETURN: self.log_return,
+            FeaturesEnum.PCT_RETURN: self.pct_return,
             # Свечные
-            "high_rel": self.high_rel,
-            "low_rel": self.low_rel,
-            "close_rel": self.close_rel,
-            "candle_body": self.candle_body,
+            FeaturesEnum.HIGH: self.high_rel,
+            FeaturesEnum.LOW: self.low_rel,
+            FeaturesEnum.CLOSE: self.close_rel,
+            FeaturesEnum.CANDLE_BODY: self.candle_body,
             # Индикаторы
-            "rsi_14": lambda df: self.rsi(df, period=14),
-            "true_range_pct": self.true_range_pct,
-            "hv_14": lambda df: self.hv(df, period=14),
+            FeaturesEnum.RSI14: lambda df: self.rsi(df, period=14),
+            FeaturesEnum.HV14: lambda df: self.hv(df, period=14),
             # Скользящие
-            "sma_14": lambda df: self.sma(df, period=14),
-            "ema_14": lambda df: self.ema(df, period=14),
+            FeaturesEnum.SMA14: lambda df: self.sma(df, period=14),
+            FeaturesEnum.EMA14: lambda df: self.ema(df, period=14),
             # Волатильность
-            "volatility_abs": self.daily_volatility_abs,
+            # "true_range_pct": self.true_range_pct,
+            FeaturesEnum.VOLATILITY: self.daily_volatility_abs,
         }
 
     def build_features(
         self,
         df: pd.DataFrame,
-        features: list[FeaturesEnum | str],
+        features: list[FeaturesEnum],
     ) -> tuple[pd.DataFrame, dict[str, ScalerProtocol]]:
 
         features_df = pd.DataFrame(index=df.index)
         scalers_registry: dict[str, ScalerProtocol] = {}
+
+        # Добавление сдвига
+        self.__feature_registry[FeaturesEnum.PCT_RETURN] = self.pct_return
 
         for name in features:
             if name not in self.__feature_registry:

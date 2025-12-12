@@ -1,12 +1,16 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
 
 from api import (
     router as main_router,
     websocket_router,
 )
+from api.exceptions import AppException
 from config import settings
+from schemas import BaseSchemaResponse
 
 app = FastAPI(
     title=settings.api.title,
@@ -14,7 +18,6 @@ app = FastAPI(
     debug=settings.api.debug,
 )
 
-# CORS для разработки
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,6 +28,14 @@ app.add_middleware(
 
 app.include_router(main_router)
 app.include_router(websocket_router)
+
+
+@app.exception_handler(AppException)
+async def handle_app_exception(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=BaseSchemaResponse(detail=exc.message),
+    )
 
 
 if __name__ == "__main__":

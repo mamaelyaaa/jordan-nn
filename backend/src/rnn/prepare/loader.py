@@ -4,10 +4,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import FeaturesType, TargetType
-from .feature_engine import FeatureEngine
+from .feature_engine import FeatureEngine, FeaturesEnum
 from .scaler import ScalerProtocol
-from .target_engine import TargetEngine
+from .target_engine import TargetEngine, TargetEnum
 
 
 @dataclass
@@ -45,8 +44,8 @@ class DataLoader:
     def prepare_data(
         self,
         df: pd.DataFrame,
-        features: list[FeaturesType | str],
-        target: list[TargetType | str],
+        features: list[FeaturesEnum],
+        target: TargetEnum,
         test_rate: float = 0.3,
     ) -> "Dataset":
         """Подготовка данных в формате вашего примера"""

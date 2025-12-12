@@ -1,4 +1,6 @@
+import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, Optional
 
 import numpy as np
@@ -169,6 +171,232 @@ class JordanRNN:
 
             if verbose:
                 print(f"Epoch {epoch + 1}, MSE: {mse:.6f}")
+
+        return mse_history
+
+    def train_with_control(
+        self,
+        training: np.ndarray,
+        targets: np.ndarray,
+        epochs: int,
+        session_id: str,
+        verbose: bool = True,
+    ) -> list[float]:
+        """
+        Обучение сети с контролем паузы/остановки через сессию
+        """
+
+        # Инициализация весов
+        self._initialize_weights(x_sample=training[0], y_sample=targets[0])
+        mse_history = []
+
+        # Импорт
+        import asyncio
+        import queue
+
+        # Создаем очередь для сообщений
+        message_queue = queue.Queue()
+
+        # Функция для отправки всех сообщений из очереди
+        def flush_message_queue():
+            try:
+                from api.websockets.connection import websocket_manager
+                from api.training.session import session_manager
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                while not message_queue.empty():
+                    msg_type, data = message_queue.get_nowait()
+                    if msg_type == "progress":
+                        loop.run_until_complete(
+                            websocket_manager.send_progress(session_id, data)
+                        )
+                    elif msg_type == "update_session":
+                        loop.run_until_complete(session_manager.update_session(**data))
+
+                loop.close()
+            except Exception as e:
+                print(f"Error flushing message queue: {e}")
+
+        # Импорт менеджеров
+        from api.training.session import session_manager
+        from api.websockets.connection import websocket_manager
+
+        # Создаем event loop для этого потока
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        def run_async(coro):
+            return loop.run_until_complete(coro)
+
+        for epoch in range(1, epochs + 1):
+            try:
+                # Проверка состояния сессии
+                session = run_async(session_manager.get_session(session_id))
+                if not session:
+                    print(f"Session {session_id} not found, stopping training")
+                    break
+
+                # Проверка паузы
+                if session.is_paused():
+                    # Отправляем уведомление о паузе
+                    run_async(
+                        websocket_manager.send_progress(
+                            session_id,
+                            {
+                                "type": "training_paused",
+                                "session_id": session_id,
+                                "epoch": epoch - 1,
+                            },
+                        )
+                    )
+
+                    print(f"Training paused at epoch {epoch}")
+                    while session.is_paused():
+                        time.sleep(1)
+                        session = run_async(session_manager.get_session(session_id))
+                        if not session or session.should_stop():
+                            break
+
+                    # Отправляем уведомление о возобновлении
+                    run_async(
+                        websocket_manager.send_progress(
+                            session_id,
+                            {
+                                "type": "training_resumed",
+                                "session_id": session_id,
+                                "epoch": epoch,
+                            },
+                        )
+                    )
+
+                # Проверка остановки
+                if session.should_stop():
+                    print(f"Training stopped by user at epoch {epoch}")
+                    run_async(
+                        session_manager.update_session(
+                            session_id,
+                            status="stopped",
+                            current_epoch=epoch - 1,
+                            end_time=datetime.now(),
+                        )
+                    )
+                    run_async(
+                        websocket_manager.send_progress(
+                            session_id,
+                            {
+                                "type": "training_stopped",
+                                "session_id": session_id,
+                                "epoch": epoch - 1,
+                            },
+                        )
+                    )
+                    break
+
+                # Обучение на одной эпохе
+                gradients = self._init_gradients()
+                next_lg = np.zeros((self.h_layer.neurons, 1))
+                self._reset_context()
+
+                mse_samples = []
+
+                # Проход по обучающей выборке
+                for i in range(len(training)):
+                    if i % 50 == 0:
+                        session = run_async(session_manager.get_session(session_id))
+                        if not session:
+                            break
+
+                        if session.is_paused():
+                            print(f"Training paused during epoch {epoch} at sample {i}")
+                            while session.is_paused():
+                                time.sleep(1)
+                                session = run_async(
+                                    session_manager.get_session(session_id)
+                                )
+                                if not session or session.should_stop():
+                                    break
+
+                        if session and session.should_stop():
+                            print(
+                                f"Training stopped during epoch {epoch} at sample {i}"
+                            )
+                            return mse_history
+
+                    # Прямой проход и обратное распространение
+                    y_exp = self.forward(training[i])
+                    mse = np.mean((targets[i] - y_exp) ** 2)
+                    mse_samples.append(mse)
+
+                    lg_o, lg_h = self.bptt(y_exp, targets[i], next_lg)
+                    next_lg = lg_h
+
+                    self._accumulate_gradients(gradients, lg_o, lg_h)
+                    self.context = y_exp.copy()
+
+                if not session:
+                    break
+
+                # Обновление весов
+                self._normalize_gradients(gradients, n_samples=len(training))
+                self._update_weights(gradients)
+
+                # Вычисление MSE
+                mse = np.average(mse_samples)
+                mse_history.append(mse)
+
+                # === КРИТИЧЕСКИЙ УЧАСТОК: последовательная отправка ===
+                # 1. Сначала обновляем сессию
+                run_async(
+                    session_manager.update_session(
+                        session_id, current_epoch=epoch, loss_history=mse_history.copy()
+                    )
+                )
+
+                # 2. Ждем завершения обновления
+                time.sleep(0.01)  # Небольшая задержка для гарантии
+
+                # 3. Затем отправляем WebSocket сообщение
+                run_async(
+                    websocket_manager.send_progress(
+                        session_id,
+                        {
+                            "type": "training",
+                            "epoch": epoch,
+                            "total_epochs": epochs,
+                            "loss": mse,
+                            "mse_history": mse_history,
+                        },
+                    )
+                )
+
+                # 4. Ждем завершения отправки
+                time.sleep(0.01)
+
+                if verbose:
+                    print(f"Epoch {epoch}/{epochs}, MSE: {mse:.6f}")
+
+            except Exception as e:
+                print(f"Error in epoch {epoch}: {e}")
+                try:
+                    run_async(
+                        websocket_manager.send_progress(
+                            session_id,
+                            {
+                                "type": "training_error",
+                                "session_id": session_id,
+                                "error": str(e),
+                                "epoch": epoch,
+                            },
+                        )
+                    )
+                except:
+                    pass
+                raise
 
         return mse_history
 

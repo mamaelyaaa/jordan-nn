@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from config import settings
 from manager import RNNManager
 from structure.activation import (
     TanhActivation,  # type: ignore
@@ -12,7 +13,6 @@ from structure.regularizer import (
     L1,  # type: ignore
 )
 
-STOCKS_DIR = Path(__file__).parent.parent.parent / "stocks"
 
 if __name__ == "__main__":
     manager = RNNManager(
@@ -33,7 +33,8 @@ if __name__ == "__main__":
     )
 
     # Подготавливаем выборку
-    stock = STOCKS_DIR / "apple.csv"
+    stock = settings.files.stocks / "aapl.us.txt"
+
     raw = manager.load_and_prepare(source=stock, test_rate=0.3)
 
     # Обучаем модель

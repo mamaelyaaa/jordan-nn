@@ -1,10 +1,13 @@
+from enum import Enum
 from typing import Dict, Protocol, Tuple
 
-import numpy as np
 import pandas as pd
 
-from . import TargetType
-from .scaler import ScalerProtocol, EmptyScaler, StandardScaler
+from .scaler import ScalerProtocol, StandardScaler
+
+
+class TargetEnum(str, Enum):
+    CLOSE_1D = "close_1d"
 
 
 class TargetFunc(Protocol):
@@ -14,32 +17,20 @@ class TargetFunc(Protocol):
 class TargetEngine:
 
     def __init__(self):
-        self.__target_registry: Dict[str, TargetFunc] = {
-            # БАЗОВЫЕ ТАРГЕТЫ
-            "target_close_1d": self.target_close_1d,
-            "target_log_return_1d": self.target_log_return_1d,
-            "target_pct_return_1d": self.target_pct_return_1d,
-            # БОЛЕЕ СЛОЖНЫЕ ТАРГЕТЫ
-            "target_volatility_1d": self.target_volatility_1d,
-            "target_direction_1d": self.target_direction_1d,
+        self.__target_registry: Dict[TargetEnum, TargetFunc] = {
+            TargetEnum.CLOSE_1D: self.target_close_1d,
         }
 
     def build_target(
-        self,
-        df: pd.DataFrame,
-        target: list[TargetType | str],
+        self, df: pd.DataFrame, target: TargetEnum
     ) -> Tuple[pd.DataFrame, Dict[str, ScalerProtocol]]:
 
         targets_df = pd.DataFrame(index=df.index)
         scalers_registry: Dict[str, ScalerProtocol] = {}
 
-        for name in target:
-            if name not in self.__target_registry:
-                raise ValueError(f"Неизвестный таргет: {name}")
-
-            series, scaler = self.__target_registry[name](df)
-            targets_df[name] = series
-            scalers_registry[name] = scaler
+        series, scaler = self.__target_registry[target](df)
+        targets_df[target] = series
+        scalers_registry[target] = scaler
 
         targets_df = targets_df.dropna()
 
@@ -50,28 +41,3 @@ class TargetEngine:
         """Цена закрытия следующего дня"""
         s = df["Close"].shift(-1)
         return s, StandardScaler()
-
-    @staticmethod
-    def target_log_return_1d(df: pd.DataFrame) -> Tuple[pd.Series, ScalerProtocol]:
-        """Лог-доходность следующего дня"""
-        s = np.log(df["Close"]).diff().shift(-1)
-        return s, EmptyScaler()
-
-    @staticmethod
-    def target_pct_return_1d(df: pd.DataFrame) -> Tuple[pd.Series, ScalerProtocol]:
-        """Обычная доходность следующего дня"""
-        s = df["Close"].pct_change().shift(-1)
-        return s, EmptyScaler()
-
-    @staticmethod
-    def target_volatility_1d(df: pd.DataFrame) -> Tuple[pd.Series, ScalerProtocol]:
-        """Абсолютная волатильность свечи следующего дня"""
-        daily_vol = (df["High"] - df["Low"]) / df["Open"]
-        return daily_vol.shift(-1), StandardScaler()
-
-    @staticmethod
-    def target_direction_1d(df: pd.DataFrame) -> Tuple[pd.Series, ScalerProtocol]:
-        """Направление движения цены: -1 / 0 / 1"""
-        ret = df["Close"].pct_change().shift(-1)
-        direction = np.sign(ret)
-        return direction, EmptyScaler()

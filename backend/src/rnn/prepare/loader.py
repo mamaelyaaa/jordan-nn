@@ -1,0 +1,123 @@
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from .feature_engine import FeatureEngine, FeaturesEnum
+from .scaler import ScalerProtocol
+from .target_engine import TargetEngine, TargetEnum
+
+
+@dataclass
+class Dataset:
+    df: pd.DataFrame
+    # Целевые значения
+
+    # Обучающая выборка
+    x_train_N: np.ndarray
+    y_train_N: np.ndarray
+    train_size: int
+    close_train: pd.Series
+
+    # Тестовая выборка
+    x_test_N: np.ndarray
+    y_test_N: np.ndarray
+    test_size: int
+    close_test: pd.Series
+
+
+class DataLoader:
+
+    def __init__(self):
+        self.features_scalers: dict[str, ScalerProtocol] = {}
+        self.feature_engine = FeatureEngine()
+        self.target_engine = TargetEngine()
+        self.target_scalers = None  # Для денормализации
+
+    @staticmethod
+    def load_raw_data(source: Path | str) -> pd.DataFrame:
+        raw_data = pd.read_csv(source)
+        df = raw_data.drop(columns=["OpenInt"], errors="ignore")
+        return df
+
+    def prepare_data(
+        self,
+        df: pd.DataFrame,
+        features: list[FeaturesEnum],
+        target: TargetEnum,
+        test_rate: float = 0.3,
+    ) -> "Dataset":
+        """Подготовка данных в формате вашего примера"""
+
+        # Создаем признаки
+        features_df, feature_scalers = self.feature_engine.build_features(
+            df, features=features
+        )
+        features_df = features_df.dropna()
+
+        # Создаем таргет
+        target_df, target_scalers = self.target_engine.build_target(df, target=target)
+        self.target_scalers = target_scalers  # Сохраняем для денормализации
+        target_df = target_df.dropna()
+
+        n = len(features_df)
+        test_size = int(n * test_rate)
+        train_size = n - test_size
+
+        close_train = df[["Close"]][:train_size][:-1]
+        close_test = df[["Close"]][train_size:][:-1]
+
+        # Разделяем исходные данные
+        x_train = features_df.iloc[:train_size].copy()
+        x_test = features_df.iloc[train_size:].copy()
+        y_train = target_df.iloc[:train_size].copy()
+        y_test = target_df.iloc[train_size:].copy()
+
+        # Нормализация данных признаков
+        for feature, f_scaler in feature_scalers.items():
+            x_train.loc[:, feature] = f_scaler.normalize(x_train[feature], fit=True)
+            x_test.loc[:, feature] = f_scaler.normalize(x_test[feature], fit=False)
+
+        # Нормализация целевых переменных
+        for target_name, t_scaler in target_scalers.items():
+            y_train.loc[:, target_name] = t_scaler.normalize(
+                y_train[target_name], fit=True
+            )
+            y_test.loc[:, target_name] = t_scaler.normalize(
+                y_test[target_name], fit=False
+            )
+
+        # Разбиваем на входы и выходы для временных рядов (t -> t+1)
+        x_train_normalized = x_train[:-1].values  # Признаки дня t
+        y_train_normalized = y_train[1:].values  # Цель дня t+1
+        x_test_normalized = x_test[:-1].values  # Признаки дня t
+        y_test_normalized = y_test[1:].values  # Цель дня t+1
+
+        return Dataset(
+            df=df,
+            close_test=close_test,
+            close_train=close_train,
+            x_train_N=x_train_normalized,
+            y_train_N=y_train_normalized,
+            train_size=len(x_train_normalized),
+            x_test_N=x_test_normalized,
+            y_test_N=y_test_normalized,
+            test_size=len(x_test_normalized),
+        )
+
+    def denormalize_predictions(self, predictions_n: np.ndarray) -> np.ndarray:
+        """Обратное преобразование предсказаний"""
+        if self.target_scalers is None:
+            raise ValueError(
+                "Скалеры не инициализированы. Сначала вызовите prepare_data"
+            )
+
+        if len(self.target_scalers) > 1:
+            raise ValueError("Объявлено много целевых значений. Возможно только 1")
+
+        target_name = next(iter(self.target_scalers))
+        return self.target_scalers[target_name].denormalize(predictions_n)
+
+
+dataloader = DataLoader()

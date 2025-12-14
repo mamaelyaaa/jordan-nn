@@ -5,14 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.122.0",
     "matplotlib>=3.10.7",
     "numpy>=2.3.4",
     "pandas>=2.3.3",
     "pydantic-settings>=2.11.0",
+    "uvicorn>=0.38.0",
+    "websockets>=15.0.1",
 ]
 
 [dependency-groups]
 dev = [
     "black>=25.9.0",
-    "pytest>=9.0.1",
 ]

@@ -1,6 +1,8 @@
+from typing import Optional
+
 import numpy as np
 
-from .activation import ActivationProtocol
+from .activation import ActivationProtocol, LinearActivation
 
 
 class Layer:
@@ -20,5 +22,5 @@ class HiddenLayer(Layer):
 
 class OutputLayer(Layer):
 
-    def __init__(self, activation: ActivationProtocol):
-        super().__init__(activation)
+    def __init__(self, activation: Optional[ActivationProtocol] = None):
+        super().__init__(activation or LinearActivation())

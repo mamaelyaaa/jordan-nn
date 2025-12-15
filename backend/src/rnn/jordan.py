@@ -369,7 +369,7 @@ class JordanRNN:
                             "epoch": epoch,
                             "total_epochs": epochs,
                             "loss": mse,
-                            "mse_history": mse_history,
+                            # "mse_history": mse_history,
                         },
                     )
                 )

@@ -16,8 +16,10 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "apexcharts": "^5.3.6",
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
+    "vue3-apexcharts": "^1.10.0",
     "vuetify": "^3.11.2"
   },
   "devDependencies": {

@@ -10,11 +10,10 @@ from api.training.schemas import (
     SessionResponseSchema,
     SessionSchema,
 )
-from api.training.session import session_manager
 from api.training.service import training_service
+from api.training.session import session_manager
 from api.websockets.schemas import TrainingStartResponse
 from config import settings
-from rnn.manager import rnn_manager
 from rnn.schemas import TrainingRNNConfig
 from schemas import BaseSchemaResponse
 
@@ -31,37 +30,15 @@ async def start_training(
     Выводит уникальный id сессии, который нужно использовать для подключения к вебсокету
     """
 
-    # Останавливаем предыдущую сессию, если есть
-    for session_id in list(session_manager.training_tasks.keys()):
-        await session_manager.stop_session(session_id)
-
-    # Создаем новую сессию
     session_id = await session_manager.create_session(train_config)
 
-    try:
-        # Конвертируем конфиг в словарь для передачи в поток
-        config_dict = train_config.model_dump(exclude_none=True)
+    config_dict = train_config.model_dump(exclude_none=True, exclude_unset=True)
+    background_tasks.add_task(training_service.run_training, session_id, config_dict)
 
-        # Запускаем обучение в фоновой задаче
-        background_tasks.add_task(
-            training_service.run_training, session_id, config_dict
-        )
-
-        # Сохраняем задачу в менеджере
-        session_manager.training_tasks[session_id] = asyncio.create_task(
-            training_service.run_training(session_id, config_dict)
-        )
-
-        return TrainingStartResponse(
-            session_id=session_id,
-            detail="Обучение успешно запущено",
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при запуске обучения: {str(e)}",
-        )
+    return TrainingStartResponse(
+        session_id=session_id,
+        detail="Обучение начато",
+    )
 
 
 @router.get(

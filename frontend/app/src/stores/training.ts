@@ -31,7 +31,8 @@ export const useTrainingStore = defineStore("training", () => {
         mse.value = data.loss
       }
       if (data.type === "training_completed") {
-        stopTraining(event.data.predictions)
+        mseHistory.value = data.loss_history
+        stopTraining(data.predictions)
       }
 
     } catch (err) {
@@ -41,9 +42,9 @@ export const useTrainingStore = defineStore("training", () => {
 
   const startTraining = async () => {
     const config = networkStore.config
-
+    console.log(config.features)
     try {
-      const response = await API.post(URLs.TRAINING.START, { data: config })
+      const response = await API.post(URLs.TRAINING.START, config)
       sessionId.value = response.data.session_id
 
       socket.value = new WebSocket(`ws://localhost:8000/ws/${sessionId.value}`)
@@ -100,10 +101,10 @@ export const useTrainingStore = defineStore("training", () => {
     isPaused.value = false
     networkStore.setDisabled(false)
     companyStore.setDisabled(false)
+
+    stocksStore.trainPredicts = predictions.train_prediction
+    stocksStore.testPredicts = predictions.test_prediction
     stocksStore.stopLoading()
-
-    console.log(predictions)
-
   }
 
   const pauseTraining = () => {

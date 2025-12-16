@@ -1,6 +1,7 @@
 // stores/stocks.ts
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
+import {useNetworkStore} from "@/stores/network.ts";
 
 export interface StockDataPoint {
   Date: string
@@ -17,8 +18,30 @@ export interface StockHistory {
 }
 
 export const useStocksStore = defineStore('stocks', () => {
-  // State - храним данные акций
+
+  const networkStore = useNetworkStore()
+
   const stockHistory = ref<StockHistory | null>(null)
+
+  const trainPredicts = ref<number[]>([])
+  const testPredicts = ref<number[]>([])
+  const separationDate = computed(() => {
+    if (!stockHistory.value?.data?.length) return null
+
+    const data = stockHistory.value.data
+    const total = data.length
+
+    const testRate = networkStore.testRate
+    if (testRate <= 0 || testRate >= 1) return null
+
+    const trainSize = Math.floor(total * (1 - testRate))
+    const lastTrainIndex = trainSize - 1
+    if (lastTrainIndex < 0) return null
+    console.log(new Date(data[lastTrainIndex].Date).getTime())
+    return new Date(data[lastTrainIndex].Date).getTime()
+  })
+
+
   const isLoading = ref(false)
 
   // Геттер для проверки наличия данных
@@ -28,7 +51,6 @@ export const useStocksStore = defineStore('stocks', () => {
       stockHistory.value.data.length > 0
   })
 
-  // Геттер для преобразования данных в формат для свечного графика
   const candleStickSeries = computed(() => {
     if (!stockHistory.value?.data?.length) return []
 
@@ -39,44 +61,6 @@ export const useStocksStore = defineStore('stocks', () => {
         y: [item.Open, item.High, item.Low, item.Close]
       }))
     }]
-  })
-
-  const statistics = computed(() => {
-    if (!stockHistory.value?.data?.length) return null
-
-    const data = stockHistory.value.data
-
-    if (data.length === 0) return null
-
-    const latestIndex = data.length - 1
-    const latest = data[latestIndex]
-    const first = data[0]
-
-    if (!latest || !first) return null
-
-    const change = latest.Close - first.Open
-    const changePercent = (change / first.Open) * 100
-
-    return {
-      symbol: stockHistory.value.symbol,
-      days: stockHistory.value.days,
-      currentPrice: latest.Close,
-      openPrice: latest.Open,
-      highPrice: latest.High,
-      lowPrice: latest.Low,
-      change,
-      changePercent,
-      isPositive: change >= 0,
-      priceRange: latest.High - latest.Low,
-      priceRangePercent: ((latest.High - latest.Low) / latest.Low) * 100
-    }
-  })
-
-  const recentData = computed(() => {
-    if (!stockHistory.value?.data?.length) return []
-
-    const daysCount = Math.min(30, stockHistory.value.data.length)
-    return stockHistory.value.data.slice(-daysCount)
   })
 
   // Действие для обновления данных с состоянием загрузки
@@ -117,11 +101,13 @@ export const useStocksStore = defineStore('stocks', () => {
     stockHistory,
     isLoading,
 
+    trainPredicts,
+    testPredicts,
+    separationDate,
+
     // Getters
     hasData,
     candleStickSeries,
-    statistics,
-    recentData,
 
     // Actions
     updateStockHistory,

@@ -5,7 +5,7 @@ import {storeToRefs} from "pinia";
 
 const store = useCompanyStore()
 
-const {companies, selectedCompany, days, isDisabled} = storeToRefs(store)
+const {companies, selectedCompany, isDisabled} = storeToRefs(store)
 
 const { chooseCompany } = store
 
@@ -30,20 +30,6 @@ onMounted(() => {
           item-value="symbol"
           block
         />
-      </v-row>
-      <v-row>
-        <v-slider
-          v-model="days"
-          label="Диапазон дней"
-          :step="1"
-          :min="1"
-          :max="1095"
-          block
-        >
-          <template v-slot:append>
-            {{ days }}
-          </template>
-        </v-slider>
       </v-row>
       <v-row>
         <v-btn

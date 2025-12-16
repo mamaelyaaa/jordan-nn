@@ -1,6 +1,6 @@
 // stores/network.ts
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import {ref, computed, watch, toRaw} from 'vue'
 import {useCompanyStore} from "@/stores/company.ts";
 
 export const useNetworkStore = defineStore('network', () => {
@@ -52,21 +52,33 @@ export const useNetworkStore = defineStore('network', () => {
   }
 
   // Признаки
+  // const features = ref([
+  //   {title: "Логарифм. доходность", value: "log_return"},
+  //   {title: "Цена закрытия", value: "close"},
+  //   {title: "Максимальная цена", value: "high"},
+  //   {title: "Минимальная цена", value: "low"},
+  //   {title: "Тело свечи", value: "candle_body"},
+  //   {title: "RSI", value: "rsi_14"},
+  //   {title: "EMA", value: "ema_14"},
+  //   {title: "SMA", value: "sma_14"},
+  //   {title: "Ист. волатильность", value: "hv_14"},
+  //   {title: "Волатильность", value: "volatility"},
+  // ])
   const features = ref([
-    {title: "Логарифм. доходность", value: "log_return"},
-    {title: "Цена закрытия", value: "close"},
-    {title: "Максимальная цена", value: "high"},
-    {title: "Минимальная цена", value: "low"},
-    {title: "Тело свечи", value: "candle_body"},
-    {title: "RSI", value: "rsi_14"},
-    {title: "EMA", value: "ema_14"},
-    {title: "SMA", value: "sma_14"},
-    {title: "Ист. волатильность", value: "hv_14"},
-    {title: "Волатильность", value: "volatility"},
+    "log_return",
+    "close",
+    "high",
+    "low",
+    "candle_body",
+    "rsi_14",
+    "ema_14",
+    "sma_14",
+    "hv_14",
+    "volatility",
   ])
-  const selectedFeatures = ref<Array<string>>([])
-  const setSelectedFeatures = (features: string[]) => {
-    selectedFeatures.value = features
+  const selectedFeatures = ref<string[]>([])
+  const setSelectedFeatures = (values: string[]) => {
+    selectedFeatures.value = [...values] // Proxy уже не страшен
   }
 
   // Размер тестовой выборки

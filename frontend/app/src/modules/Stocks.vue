@@ -1,23 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStocksStore } from '@/stores/stocks'
+import { useNetworkStore } from '@/stores/network'
 import { storeToRefs } from 'pinia'
 import VueApexCharts from 'vue3-apexcharts'
 
+/* ===== stores ===== */
 const stocksStore = useStocksStore()
-const { candleStickSeries, statistics, hasData, recentData, isLoading } = storeToRefs(stocksStore)
+const networkStore = useNetworkStore()
 
-// Предсказания (mock / можно подключить к реальному стору с predictions)
-const predictions = ref<number[]>([]) // сюда кладём массив предсказанных значений
+const { candleStickSeries, hasData, isLoading } = storeToRefs(stocksStore)
+const { testRate } = storeToRefs(networkStore)
 
-// Реактивная высота для адаптивности
+/* ===== layout ===== */
 const chartContainer = ref<HTMLElement | null>(null)
 const chartHeight = ref(600)
 
 const updateChartHeight = () => {
   if (chartContainer.value) {
-    const containerHeight = chartContainer.value.clientHeight
-    chartHeight.value = containerHeight - 160
+    chartHeight.value = chartContainer.value.clientHeight - 160
   }
 }
 
@@ -30,74 +31,111 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateChartHeight)
 })
 
-// Series с overlay линией predict
-const combinedSeries = computed(() => {
-  const series: any[] = []
+/* ===== series ===== */
+const series = computed(() => {
+  if (!candleStickSeries.value?.length) return []
 
-  // Свечи
-  if (candleStickSeries.value && candleStickSeries.value.length > 0) {
-    series.push(...candleStickSeries.value)
-  }
+  const candles = candleStickSeries.value[0].data
 
-  // Линия predict
-  if (predictions.value && predictions.value.length > 0) {
-    const lineData = predictions.value.map((y, i) => {
-      const x = candleStickSeries.value[0]?.data[i]?.x || new Date() // берём даты свечей
-      return { x, y }
-    })
-    series.push({
-      name: 'Predict',
-      type: 'line' as const,
-      data: lineData,
-      color: '#002aff', // цвет линии
-      stroke: { width: 2 },
-    })
-  }
+  const trainLine = stocksStore.trainPredicts.map((y, i) => ({
+    x: candles[i + 1]?.x,
+    y
+  })).filter(p => p.x !== undefined)
 
-  return series
+  const testLine = stocksStore.testPredicts.map((y, i) => ({
+    x: candles[i + trainLine.length + 1]?.x,
+    y
+  })).filter(p => p.x !== undefined)
+
+  return [
+    {
+      name: stocksStore.stockHistory?.symbol || 'Candles',
+      type: 'candlestick',
+      data: candles
+    },
+    {
+      name: 'Train Predict',
+      type: 'line',
+      data: trainLine
+    },
+    {
+      name: 'Test Predict',
+      type: 'line',
+      data: testLine
+    }
+  ]
 })
 
+
+/* ===== конец train (КЛЮЧЕВО) ===== */
+const trainEndX = computed<number | null>(() => {
+  const data = candleStickSeries.value?.[0]?.data
+  if (!data?.length) return null
+  if (testRate.value <= 0 || testRate.value >= 1) return null
+
+  const trainSize = Math.floor(data.length * testRate.value)
+  const index = Math.min(trainSize - 1, data.length - 1)
+
+  const x = data[index].x
+  return x instanceof Date ? x.getTime() : x
+})
+
+/* ===== options (ТОЛЬКО computed) ===== */
 const chartOptions = computed(() => ({
   chart: {
-    height: chartHeight.value,
-    type: 'candlestick' as const,
-    stacked: false,
+    type: 'candlestick',
     toolbar: { show: true },
     background: 'transparent',
     foreColor: '#ffffff'
   },
-  title: {
-    text: statistics.value ? `${statistics.value.symbol} - Stock Price` : 'Stock Price',
-    align: 'left' as const,
-    style: { color: '#ffffff', fontSize: '18px', fontWeight: 'bold' }
+
+  grid: {
+    borderColor: 'rgba(255,255,255,0.1)',
+    strokeDashArray: 4
   },
-  grid: { borderColor: 'rgba(255,255,255,0.1)', strokeDashArray: 4 },
+
   xaxis: {
-    type: 'datetime' as const,
-    labels: { style: { colors: 'rgba(255,255,255,0.7)' } },
-    axisBorder: { show: true, color: 'rgba(255,255,255,0.1)' },
-    axisTicks: { show: true, color: 'rgba(255,255,255,0.1)' }
-  },
-  yaxis: {
-    labels: { style: { colors: 'rgba(255,255,255,0.7)' }, formatter: (val: number) => `$${val.toFixed(2)}` },
-    axisBorder: { show: true, color: 'rgba(255,255,255,0.1)' },
-    title: { text: 'Price ($)', style: { color: 'rgba(255,255,255,0.7)' } }
-  },
-  plotOptions: {
-    candlestick: {
-      colors: { upward: '#00B746', downward: '#EF403C' },
-      wick: { useFillColor: true }
+    type: 'datetime',
+    labels: {
+      style: { colors: 'rgba(255,255,255,0.7)' }
     }
   },
-  tooltip: { enabled: true, theme: 'dark', style: { fontSize: '12px' } }
+
+  yaxis: {
+    labels: {
+      style: { colors: 'rgba(255,255,255,0.7)' }
+    }
+  },
+
+  colors: ['#00bcd4', '#2196f3', '#ff9800'],
+
+  legend: { show: false },
+
+  annotations: {
+    xaxis: stocksStore.separationDate
+      ? [{
+        x: stocksStore.separationDate,
+        borderColor: '#FF9800',
+        strokeDashArray: 4,
+        label: {
+          text: 'Train / Test',
+          style: {
+            background: '#FF9800',
+            color: '#000'
+          }
+        }
+      }]
+      : []
+  }
 }))
 </script>
 
 <template>
   <v-card style="flex: 1">
     <div ref="chartContainer" class="stocks-chart">
+
       <div v-if="isLoading" class="loading-state">
-        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+        <v-progress-circular indeterminate size="64" />
       </div>
 
       <div v-else-if="hasData" class="candle-chart-container">
@@ -105,16 +143,15 @@ const chartOptions = computed(() => ({
           type="candlestick"
           :height="chartHeight"
           :options="chartOptions"
-          :series="combinedSeries"
+          :series="series"
         />
       </div>
 
       <div v-else class="no-data">
-        <div class="no-data-title">Нет данных для отображения</div>
-        <div class="no-data-text">
-          Выберите компанию из списка слева и нажмите "ОК"
-        </div>
+        <p class="no-data-title">Нет данных</p>
+        <p class="no-data-text">Выберите компанию и нажмите ОК</p>
       </div>
+
     </div>
   </v-card>
 </template>

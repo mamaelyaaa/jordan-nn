@@ -99,14 +99,10 @@ const {
           <v-combobox
             v-model="selectedFeatures"
             :items="features"
-            density="compact"
             item-title="title"
             item-value="value"
-            label="Признаки"
-            chips
             multiple
-            :menu-props="{ maxHeight: '300px' }"
-            @update:model-value="networkStore.setSelectedFeatures"
+            chips
           />
         </v-row>
 

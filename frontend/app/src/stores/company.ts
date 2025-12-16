@@ -57,6 +57,11 @@ export const useCompanyStore = defineStore("company", () => {
         stocksStore.updateStockHistory(response.data)
       })
       .then(() => {
+        stocksStore.testPredicts = []
+        stocksStore.trainPredicts = []
+        trainingStore.mse = 1
+        trainingStore.epochCompleted = 0
+        trainingStore.mseHistory = []
         networkStore.setDisabled(false)
         trainingStore.setDisabled(false)
       })

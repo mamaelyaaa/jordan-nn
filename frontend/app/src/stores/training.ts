@@ -1,13 +1,13 @@
-import { defineStore } from "pinia"
-import { ref, watch } from "vue"
-import { useNetworkStore } from "@/stores/network"
-import { useStocksStore } from "@/stores/stocks"
-import { useCompanyStore } from "@/stores/company"
-import { URLs } from "@/api/urls"
-import { API } from "@/api"
-import {useErrorStore} from "@/stores/errors.ts";
+import { defineStore } from 'pinia'
+import { ref, watch } from 'vue'
+import { useNetworkStore } from '@/stores/network'
+import { useStocksStore } from '@/stores/stocks'
+import { useCompanyStore } from '@/stores/company'
+import { URLs } from '@/api/urls'
+import { API } from '@/api'
+import { useErrorStore } from '@/stores/errors.ts'
 
-export const useTrainingStore = defineStore("training", () => {
+export const useTrainingStore = defineStore('training', () => {
   const networkStore = useNetworkStore()
   const companyStore = useCompanyStore()
   const stocksStore = useStocksStore()
@@ -19,7 +19,7 @@ export const useTrainingStore = defineStore("training", () => {
   const epochCompleted = ref<number>(0)
   const mseHistory = ref<number[]>([])
   const mse = ref<number>(1.0)
-  const sessionId = ref<string>("")
+  const sessionId = ref<string>('')
   const socket = ref<WebSocket | null>(null)
 
   // WS сообщения
@@ -27,24 +27,23 @@ export const useTrainingStore = defineStore("training", () => {
     console.log(event)
     try {
       const data = JSON.parse(event.data)
-      if (data.type === "training") {
+      if (data.type === 'training') {
         epochCompleted.value = data.epoch
         mse.value = data.loss
       }
-      if (data.type === "training_completed") {
+      if (data.type === 'training_completed') {
         mseHistory.value = data.loss_history
         stopTraining(data.predictions)
       }
-
     } catch (err) {
-      console.error("Invalid WS message", event.data)
+      console.error('Invalid WS message', event.data)
     }
   }
 
   const startTraining = async () => {
     const config = networkStore.config
     if (networkStore.isFeaturesEmpty) {
-      errorStore.setError("Выберите признаки!");
+      errorStore.setError('Выберите признаки!')
       return
     }
 
@@ -55,7 +54,7 @@ export const useTrainingStore = defineStore("training", () => {
       socket.value = new WebSocket(`ws://localhost:8000/ws/${sessionId.value}`)
 
       socket.value.onopen = () => {
-        console.log("WS Open")
+        console.log('WS Open')
         isTraining.value = true
         isPaused.value = false
         stocksStore.testPredicts = []
@@ -69,7 +68,7 @@ export const useTrainingStore = defineStore("training", () => {
       socket.value.onmessage = onMessage
 
       socket.value.onclose = () => {
-        console.log("WS Closed")
+        console.log('WS Closed')
         isTraining.value = false
         isPaused.value = false
         networkStore.setDisabled(false)
@@ -78,17 +77,16 @@ export const useTrainingStore = defineStore("training", () => {
       }
 
       socket.value.onerror = (err) => {
-        console.error("WS error", err)
+        console.error('WS error', err)
       }
-
     } catch (err) {
-      console.error("Training start failed", err)
+      console.error('Training start failed', err)
     }
   }
 
   const cancelTraining = () => {
     if (socket.value && isTraining.value) {
-      socket.value.send(JSON.stringify({ action: "stop" }))
+      socket.value.send(JSON.stringify({ action: 'stop' }))
       socket.value.close()
       socket.value = null
     }
@@ -118,14 +116,14 @@ export const useTrainingStore = defineStore("training", () => {
 
   const pauseTraining = () => {
     if (socket.value && isTraining.value && !isPaused.value) {
-      socket.value.send(JSON.stringify({ action: "pause" }))
+      socket.value.send(JSON.stringify({ action: 'pause' }))
       isPaused.value = true
     }
   }
 
   const resumeTraining = () => {
     if (socket.value && isTraining.value && isPaused.value) {
-      socket.value.send(JSON.stringify({ action: "resume" }))
+      socket.value.send(JSON.stringify({ action: 'resume' }))
       isPaused.value = false
     }
   }

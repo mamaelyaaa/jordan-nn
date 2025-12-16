@@ -4,11 +4,7 @@ import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
 import 'vuetify/styles'
 
-import {
-  mdiPlay,
-  mdiStop,
-  mdiPause,
-} from '@mdi/js'
+import { mdiPlay, mdiStop, mdiPause } from '@mdi/js'
 
 export default createVuetify({
   components,

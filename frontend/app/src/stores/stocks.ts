@@ -1,7 +1,7 @@
 // stores/stocks.ts
-import {defineStore} from 'pinia'
-import {computed, ref} from 'vue'
-import {useNetworkStore} from "@/stores/network.ts";
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { useNetworkStore } from '@/stores/network.ts'
 
 export interface StockDataPoint {
   Date: string
@@ -18,7 +18,6 @@ export interface StockHistory {
 }
 
 export const useStocksStore = defineStore('stocks', () => {
-
   const networkStore = useNetworkStore()
 
   const stockHistory = ref<StockHistory | null>(null)
@@ -41,26 +40,27 @@ export const useStocksStore = defineStore('stocks', () => {
     return new Date(data[lastTrainIndex].Date).getTime()
   })
 
-
   const isLoading = ref(false)
 
   // Геттер для проверки наличия данных
   const hasData = computed(() => {
-    return stockHistory.value !== null &&
-      stockHistory.value.data &&
-      stockHistory.value.data.length > 0
+    return (
+      stockHistory.value !== null && stockHistory.value.data && stockHistory.value.data.length > 0
+    )
   })
 
   const candleStickSeries = computed(() => {
     if (!stockHistory.value?.data?.length) return []
 
-    return [{
-      name: stockHistory.value.symbol,
-      data: stockHistory.value.data.map(item => ({
-        x: new Date(item.Date),
-        y: [item.Open, item.High, item.Low, item.Close]
-      }))
-    }]
+    return [
+      {
+        name: stockHistory.value.symbol,
+        data: stockHistory.value.data.map((item) => ({
+          x: new Date(item.Date),
+          y: [item.Open, item.High, item.Low, item.Close],
+        })),
+      },
+    ]
   })
 
   // Действие для обновления данных с состоянием загрузки
@@ -113,6 +113,6 @@ export const useStocksStore = defineStore('stocks', () => {
     updateStockHistory,
     clearStockHistory,
     startLoading,
-    stopLoading
+    stopLoading,
   }
 })

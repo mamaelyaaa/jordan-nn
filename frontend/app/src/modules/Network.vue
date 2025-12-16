@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { useNetworkStore } from '@/stores/network'
 import { storeToRefs } from 'pinia'
-import TrainingPanel from "@/modules/TrainingPanel.vue";
+import TrainingPanel from '@/modules/TrainingPanel.vue'
 
 const networkStore = useNetworkStore()
 
@@ -29,23 +29,11 @@ const {
 <template>
   <v-card
     title="Конфигурация сети"
-    style="
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  "
+    style="flex: 1; display: flex; flex-direction: column; min-height: 0"
   >
-    <v-card-text
-      style="
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-  "
-    >
-      <v-form style="margin: 15px 30px 30px 30px;"
-              :disabled="isDisabled">
-        <v-row style="gap: 15px;">
+    <v-card-text style="flex: 1; overflow-y: auto; min-height: 0">
+      <v-form style="margin: 15px 30px 30px 30px" :disabled="isDisabled">
+        <v-row style="gap: 15px">
           <v-number-input
             label="Кол-во эпох"
             control-variant="hidden"
@@ -69,7 +57,7 @@ const {
           ></v-number-input>
         </v-row>
 
-        <v-row>
+        <v-row style="gap: 15px">
           <v-select
             v-model="selectedActivation"
             density="compact"
@@ -80,9 +68,6 @@ const {
             block
             @update:model-value="networkStore.setSelectedActivation"
           />
-        </v-row>
-
-        <v-row>
           <v-number-input
             label="Скорость обучения"
             density="compact"
@@ -109,22 +94,22 @@ const {
         </v-row>
 
         <v-row>
-          <v-slider
+          <v-number-input
             v-model="testRate"
             label="Размер тестовой выборки"
+            density="compact"
+            control-variant="hidden"
             :step="0.01"
             :min="0.01"
+            :precision="2"
             :max="0.99"
             block
             @update:model-value="networkStore.setTestRate"
           >
-            <template v-slot:append>
-              {{ testPercent }}%
-            </template>
-          </v-slider>
+          </v-number-input>
         </v-row>
 
-        <v-row style="gap: 1rem;">
+        <v-row style="gap: 1rem">
           <v-select
             density="compact"
             v-model="selectedRegularization"
@@ -153,6 +138,4 @@ const {
   </v-card>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

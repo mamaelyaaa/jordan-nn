@@ -1,9 +1,9 @@
-export const API_BASE_URL = 'http://localhost:8000/api' as const;
+export const API_BASE_URL = 'http://localhost:8000/api' as const
 
 export const RESOURCES = {
-  STOCKS: "stocks",
-  TRAINING: "training",
-} as const;
+  STOCKS: 'stocks',
+  TRAINING: 'training',
+} as const
 
 export const URLs = {
   STOCKS: {
@@ -20,7 +20,7 @@ export const URLs = {
      * @path symbol - Тикер компании
      * @allowed GET
      */
-    HISTORY: `/${RESOURCES.STOCKS}/<symbol>/history/`
+    HISTORY: `/${RESOURCES.STOCKS}/<symbol>/history/`,
   } as const,
   TRAINING: {
     /**
@@ -37,12 +37,12 @@ export const URLs = {
      * @path  sessionId - Идентификатор сессии
      * @allowed GET
      */
-    RESULTS:  `/${RESOURCES.TRAINING}/<sessionId>/results/`,
+    RESULTS: `/${RESOURCES.TRAINING}/<sessionId>/results/`,
     /**
      * Список всех сессий.
      *
      * @allowed GET
      */
     SESSIONS: `/${RESOURCES.TRAINING}/sessions/`,
-  }
-} as const;
+  },
+} as const

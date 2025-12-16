@@ -1,10 +1,9 @@
 // stores/network.ts
 import { defineStore } from 'pinia'
-import {ref, computed, watch, toRaw} from 'vue'
-import {useCompanyStore} from "@/stores/company.ts";
+import { ref, computed, watch, toRaw } from 'vue'
+import { useCompanyStore } from '@/stores/company.ts'
 
 export const useNetworkStore = defineStore('network', () => {
-
   const companyStore = useCompanyStore()
 
   // Доступность настроек
@@ -31,14 +30,14 @@ export const useNetworkStore = defineStore('network', () => {
 
   // Функция активации скрытого слоя
   const activations = ref([
-    {title: "Tanh", value: 'tanh'},
-    {title: "Sigmoid", value: 'sigmoid'},
-    {title: "Linear", value: 'linear'},
-    {title: "ReLU", value: 'relu'}
+    { title: 'Tanh', value: 'tanh' },
+    { title: 'Sigmoid', value: 'sigmoid' },
+    { title: 'Linear', value: 'linear' },
+    { title: 'ReLU', value: 'relu' },
   ])
-  const selectedActivation = ref<string>("tanh")
+  const selectedActivation = ref<string>('tanh')
   const setSelectedActivation = (activation: string) => {
-    if (activation in activations) {
+    if (activation in activations.value) {
       selectedActivation.value = activation
     }
   }
@@ -64,15 +63,7 @@ export const useNetworkStore = defineStore('network', () => {
   //   {title: "Ист. волатильность", value: "hv_14"},
   //   {title: "Волатильность", value: "volatility"},
   // ])
-  const features = ref([
-    "close",
-    "high",
-    "low",
-    "candle_body",
-    "rsi_14",
-    "ema_14",
-    "volatility",
-  ])
+  const features = ref(['close', 'high', 'low', 'candle_body', 'rsi_14', 'ema_14', 'volatility'])
   const selectedFeatures = ref<string[]>([])
   const setSelectedFeatures = (values: string[]) => {
     selectedFeatures.value = [...values] // Proxy уже не страшен
@@ -116,7 +107,6 @@ export const useNetworkStore = defineStore('network', () => {
     return selectedFeatures.value.length === 0
   })
 
-
   // Общая конфигурация для запроса
   const config = computed(() => ({
     stock_symbol: companyStore.selectedCompany,
@@ -128,7 +118,7 @@ export const useNetworkStore = defineStore('network', () => {
     regularizer: selectedRegularization.value,
     regularizer_rate: regularizationRate.value,
     hidden_activation: selectedActivation.value,
-    target: "close_1d",
+    target: 'close_1d',
   }))
 
   // Сброс настроек
@@ -153,10 +143,7 @@ export const useNetworkStore = defineStore('network', () => {
 
   watch(learningRate, () => {
     if (Boolean(selectedRegularization.value)) {
-      regularizationRate.value = Math.min(
-        regularizationRate.value,
-        regularizationRateMax.value
-      )
+      regularizationRate.value = Math.min(regularizationRate.value, regularizationRateMax.value)
     }
   })
 
@@ -194,6 +181,5 @@ export const useNetworkStore = defineStore('network', () => {
     setRegularizationRate,
     setDisabled,
     resetToDefaults,
-
   }
 })

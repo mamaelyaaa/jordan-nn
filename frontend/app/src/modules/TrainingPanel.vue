@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { useTrainingStore } from "@/stores/training"
-import { storeToRefs } from "pinia"
-import { ref, watch } from "vue"
-import VueApexCharts from "vue3-apexcharts"
+import { useTrainingStore } from '@/stores/training'
+import { storeToRefs } from 'pinia'
+import { ref, watch } from 'vue'
+import VueApexCharts from 'vue3-apexcharts'
 
 // иконки
 import { mdiPlay, mdiStop, mdiPause } from '@mdi/js'
-import type { ApexOptions } from "apexcharts"
-import {useNetworkStore} from "@/stores/network.ts";
+import type { ApexOptions } from 'apexcharts'
+import { useNetworkStore } from '@/stores/network.ts'
 
 const store = useTrainingStore()
 const networkStore = useNetworkStore()
@@ -27,7 +27,7 @@ const apexChartRef = ref<InstanceType<typeof VueApexCharts> | null>(null)
 const chartOptions: ApexOptions = {
   chart: {
     id: 'mse-chart',
-    type: "line",
+    type: 'line',
     animations: { enabled: false },
     toolbar: { show: false },
     sparkline: { enabled: false },
@@ -44,14 +44,14 @@ const chartOptions: ApexOptions = {
     title: { text: '' },
     labels: {
       show: true,
-      formatter: (val) => val.toFixed(2) // два знака после запятой
+      formatter: (val) => val.toFixed(2), // два знака после запятой
     },
     axisBorder: { show: true },
     axisTicks: { show: true },
   },
   stroke: {
     curve: 'smooth',
-    width: 2
+    width: 2,
   },
   tooltip: { enabled: false },
   legend: { show: false },
@@ -62,46 +62,49 @@ const chartOptions: ApexOptions = {
     row: { colors: undefined },
     column: { colors: undefined },
     yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } }
+    xaxis: { lines: { show: false } },
   },
-
 }
 
 // Изначально пустая серия
 const chartSeries = ref([{ name: 'MSE', data: [] }])
 
 watch(mse, (newVal) => {
-  if (!apexChartRef.value || newVal === null || newVal === undefined) return;
+  if (!apexChartRef.value || newVal === null || newVal === undefined) return
 
   if (epochCompleted.value % 10 === 0) {
     // Получаем текущие данные серии
-    const currentSeries = apexChartRef.value.series;
-    const currentData = currentSeries[0]?.data || [];
+    const currentSeries = apexChartRef.value.series
+    const currentData = currentSeries[0]?.data || []
 
     // Добавляем новое значение
-    const newData = [...currentData, newVal];
+    const newData = [...currentData, newVal]
 
     // Обновляем серию
-    chartSeries.value =[{
-      name: 'MSE',
-      data: newData
-    }];
+    chartSeries.value = [
+      {
+        name: 'MSE',
+        data: newData,
+      },
+    ]
 
     apexChartRef.value.updateSeries(chartSeries)
   }
-});
+})
 
 watch(mseHistory, (newVal) => {
-  if (!apexChartRef.value || newVal === null || newVal === undefined) return;
+  if (!apexChartRef.value || newVal === null || newVal === undefined) return
 
   // Обновляем серию
-  chartSeries.value =[{
-    name: 'MSE',
-    data: newVal
-  }];
+  chartSeries.value = [
+    {
+      name: 'MSE',
+      data: newVal,
+    },
+  ]
 
   apexChartRef.value.updateSeries(chartSeries)
-});
+})
 </script>
 
 <template>
@@ -110,11 +113,11 @@ watch(mseHistory, (newVal) => {
     :title="`Эпохи: ${epochCompleted}, MSE: ${mse.toFixed(4)}`"
     style="display: flex; flex-direction: column; height: 225px"
   >
-    <v-card-text style="display: flex; flex: 1; gap: 16px; padding: 0; align-items: center;">
+    <v-card-text style="display: flex; flex: 1; gap: 16px; padding: 0; align-items: center">
       <!-- Колонка кнопок -->
       <v-container
         class="d-flex flex-column"
-        style="gap: 16px; width: 64px; padding: 16px 0 16px 16px;"
+        style="gap: 16px; width: 64px; padding: 16px 0 16px 16px"
       >
         <!-- PLAY / STOP -->
         <v-tooltip location="right">
@@ -135,17 +138,11 @@ watch(mseHistory, (newVal) => {
         <!-- PAUSE / RESUME -->
         <v-tooltip location="right">
           <template #activator="{ props }">
-          <span v-bind="props">
-            <v-btn
-              icon
-              size="48"
-              color="secondary"
-              :disabled="!isTraining"
-              @click="onPauseClick"
-            >
-              <v-icon :icon="mdiPause" />
-            </v-btn>
-          </span>
+            <span v-bind="props">
+              <v-btn icon size="48" color="secondary" :disabled="!isTraining" @click="onPauseClick">
+                <v-icon :icon="mdiPause" />
+              </v-btn>
+            </span>
           </template>
           <span>{{ isPaused ? 'Продолжить' : 'Пауза' }}</span>
         </v-tooltip>

@@ -5,11 +5,13 @@ import { useStocksStore } from "@/stores/stocks"
 import { useCompanyStore } from "@/stores/company"
 import { URLs } from "@/api/urls"
 import { API } from "@/api"
+import {useErrorStore} from "@/stores/errors.ts";
 
 export const useTrainingStore = defineStore("training", () => {
   const networkStore = useNetworkStore()
   const companyStore = useCompanyStore()
   const stocksStore = useStocksStore()
+  const errorStore = useErrorStore()
 
   const isDisabled = ref<boolean>(true)
   const isTraining = ref<boolean>(false)
@@ -27,7 +29,6 @@ export const useTrainingStore = defineStore("training", () => {
       const data = JSON.parse(event.data)
       if (data.type === "training") {
         epochCompleted.value = data.epoch
-        mseHistory.value = data.mse_history
         mse.value = data.loss
       }
       if (data.type === "training_completed") {
@@ -42,7 +43,11 @@ export const useTrainingStore = defineStore("training", () => {
 
   const startTraining = async () => {
     const config = networkStore.config
-    console.log(config.features)
+    if (networkStore.isFeaturesEmpty) {
+      errorStore.setError("Выберите признаки!");
+      return
+    }
+
     try {
       const response = await API.post(URLs.TRAINING.START, config)
       sessionId.value = response.data.session_id
@@ -53,6 +58,8 @@ export const useTrainingStore = defineStore("training", () => {
         console.log("WS Open")
         isTraining.value = true
         isPaused.value = false
+        stocksStore.testPredicts = []
+        stocksStore.trainPredicts = []
         networkStore.setDisabled(true)
         companyStore.setDisabled(true)
         stocksStore.startLoading()
@@ -89,6 +96,8 @@ export const useTrainingStore = defineStore("training", () => {
     isPaused.value = false
     networkStore.setDisabled(false)
     companyStore.setDisabled(false)
+    stocksStore.testPredicts = []
+    stocksStore.trainPredicts = []
     stocksStore.stopLoading()
   }
 

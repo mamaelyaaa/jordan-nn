@@ -26,7 +26,7 @@ onMounted(async () => {
       </v-container>
       <v-container style="display: flex; width: 25vw; flex-direction: column; gap: 1rem; flex: 1">
         <stocks style="width: 100%"/>
-        <training-panel/>
+<!--        <training-panel/>-->
       </v-container>
     </v-main>
   </v-app>

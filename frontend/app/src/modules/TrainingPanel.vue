@@ -7,8 +7,11 @@ import VueApexCharts from "vue3-apexcharts"
 // иконки
 import { mdiPlay, mdiStop, mdiPause } from '@mdi/js'
 import type { ApexOptions } from "apexcharts"
+import {useNetworkStore} from "@/stores/network.ts";
 
 const store = useTrainingStore()
+const networkStore = useNetworkStore()
+
 const { isDisabled, isTraining, isPaused, epochCompleted, mseHistory, mse } = storeToRefs(store)
 const { startTraining, stopTraining, cancelTraining, pauseTraining, resumeTraining } = store
 
@@ -17,9 +20,6 @@ function onPauseClick() {
   else pauseTraining()
 }
 
-// Отображаем только последние 100 точек
-const MAX_POINTS = 100
-
 // Ref на компонент графика
 const apexChartRef = ref<InstanceType<typeof VueApexCharts> | null>(null)
 
@@ -27,9 +27,10 @@ const apexChartRef = ref<InstanceType<typeof VueApexCharts> | null>(null)
 const chartOptions: ApexOptions = {
   chart: {
     id: 'mse-chart',
+    type: "line",
     animations: { enabled: false },
     toolbar: { show: false },
-    sparkline: { enabled: false }
+    sparkline: { enabled: false },
   },
   xaxis: {
     categories: [] as number[],
@@ -48,7 +49,10 @@ const chartOptions: ApexOptions = {
     axisBorder: { show: true },
     axisTicks: { show: true },
   },
-  stroke: { curve: 'smooth' },
+  stroke: {
+    curve: 'smooth',
+    width: 2
+  },
   tooltip: { enabled: false },
   legend: { show: false },
   title: { text: '' },
@@ -59,30 +63,51 @@ const chartOptions: ApexOptions = {
     column: { colors: undefined },
     yaxis: { lines: { show: true } },
     xaxis: { lines: { show: false } }
-  }
+  },
+
 }
-
-
 
 // Изначально пустая серия
 const chartSeries = ref([{ name: 'MSE', data: [] }])
 
-// Обновляем график при изменении mseHistory, только последние MAX_POINTS
+watch(mse, (newVal) => {
+  if (!apexChartRef.value || newVal === null || newVal === undefined) return;
+
+  if (epochCompleted.value % 10 === 0) {
+    // Получаем текущие данные серии
+    const currentSeries = apexChartRef.value.series;
+    const currentData = currentSeries[0]?.data || [];
+
+    // Добавляем новое значение
+    const newData = [...currentData, newVal];
+
+    // Обновляем серию
+    chartSeries.value =[{
+      name: 'MSE',
+      data: newData
+    }];
+
+    apexChartRef.value.updateSeries(chartSeries)
+  }
+});
+
 watch(mseHistory, (newVal) => {
-  if (!apexChartRef.value || !newVal) return
+  if (!apexChartRef.value || newVal === null || newVal === undefined) return;
 
-  const data = newVal.slice(-MAX_POINTS)
-  chartSeries.value = [{ name: 'MSE', data }]
+  // Обновляем серию
+  chartSeries.value =[{
+    name: 'MSE',
+    data: newVal
+  }];
 
-  // Обновляем график через ApexCharts метод updateSeries
-  apexChartRef.value.updateSeries([{ name: 'MSE', data }])
-})
+  apexChartRef.value.updateSeries(chartSeries)
+});
 </script>
 
 <template>
   <v-card
     :disabled="isDisabled"
-    :title="`Эпохи: ${epochCompleted}, MSE: ${mse}`"
+    :title="`Эпохи: ${epochCompleted}, MSE: ${mse.toFixed(4)}`"
     style="display: flex; flex-direction: column; height: 225px"
   >
     <v-card-text style="display: flex; flex: 1; gap: 16px; padding: 0; align-items: center;">
@@ -130,7 +155,6 @@ watch(mseHistory, (newVal) => {
       <div style="flex: 1; padding: 16px">
         <vue-apex-charts
           ref="apexChartRef"
-          v-if="mseHistory && mseHistory.length"
           type="line"
           height="125"
           width="100%"

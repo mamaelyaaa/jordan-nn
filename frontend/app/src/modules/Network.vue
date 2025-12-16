@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { useNetworkStore } from '@/stores/network'
 import { storeToRefs } from 'pinia'
+import TrainingPanel from "@/modules/TrainingPanel.vue";
 
 const networkStore = useNetworkStore()
 
@@ -27,7 +28,6 @@ const {
 
 <template>
   <v-card
-    :disabled="isDisabled"
     title="Конфигурация сети"
     style="
     flex: 1;
@@ -43,7 +43,8 @@ const {
     min-height: 0;
   "
     >
-      <v-form style="margin: 15px 30px 30px 30px;">
+      <v-form style="margin: 15px 30px 30px 30px;"
+              :disabled="isDisabled">
         <v-row style="gap: 15px;">
           <v-number-input
             label="Кол-во эпох"
@@ -97,6 +98,7 @@ const {
 
         <v-row>
           <v-combobox
+            label="Признаки"
             v-model="selectedFeatures"
             :items="features"
             item-title="title"
@@ -146,6 +148,7 @@ const {
           />
         </v-row>
       </v-form>
+      <training-panel></training-panel>
     </v-card-text>
   </v-card>
 </template>

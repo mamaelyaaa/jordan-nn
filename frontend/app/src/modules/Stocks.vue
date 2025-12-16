@@ -84,6 +84,7 @@ const trainEndX = computed<number | null>(() => {
 const chartOptions = computed(() => ({
   chart: {
     type: 'candlestick',
+    animations: { enabled: false },
     toolbar: { show: true },
     background: 'transparent',
     foreColor: '#ffffff'
@@ -109,7 +110,20 @@ const chartOptions = computed(() => ({
 
   colors: ['#00bcd4', '#2196f3', '#ff9800'],
 
-  legend: { show: false },
+  legend: {
+    show: true,
+    position: 'top',
+    horizontalAlign: 'center',
+    labels: {
+      colors: '#000000',
+      useSeriesColors: true
+    },
+    markers: {
+      width: 12,
+      height: 12,
+      radius: 6
+    }
+  },
 
   annotations: {
     xaxis: stocksStore.separationDate

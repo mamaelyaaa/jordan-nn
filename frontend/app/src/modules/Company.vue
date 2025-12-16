@@ -18,26 +18,32 @@ onMounted(() => {
 <template>
   <v-card
     title="Данные компаний"
-    :disabled="isDisabled"
   >
-    <v-form style="margin: 15px 30px 30px 30px;">
-      <v-row>
-        <v-select
-          v-model="selectedCompany"
-          label="Название компании"
-          :items="companies"
-          item-title="name"
-          item-value="symbol"
-          block
-        />
-      </v-row>
-      <v-row>
-        <v-btn
-          text="ОК"
-          block
-          @click="chooseCompany"
-        />
-      </v-row>
+    <v-form
+            :disabled="isDisabled">
+      <v-container>
+        <v-row justify="stretch">
+          <v-col cols="9">
+            <v-select
+              density="comfortable"
+              v-model="selectedCompany"
+              label="Название компании"
+              :items="companies"
+              item-title="name"
+              item-value="symbol"
+            />
+          </v-col>
+
+          <v-col cols="2">
+            <v-btn
+              color="primary"
+              text="ОК"
+              @click="chooseCompany"
+            />
+          </v-col>
+        </v-row>
+      </v-container>
+
     </v-form>
   </v-card>
 </template>

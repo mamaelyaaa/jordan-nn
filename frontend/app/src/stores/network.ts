@@ -22,7 +22,7 @@ export const useNetworkStore = defineStore('network', () => {
   }
 
   // Нейроны скрытого слоя
-  const neuronsCount = ref(8)
+  const neuronsCount = ref(128)
   const setNeuronsCount = (count: number) => {
     if (count >= 1 && count <= 512) {
       neuronsCount.value = count
@@ -44,7 +44,7 @@ export const useNetworkStore = defineStore('network', () => {
   }
 
   // Скорость обучения
-  const learningRate = ref(0.001)
+  const learningRate = ref(0.003)
   const setLearningRate = (rate: number) => {
     if (rate >= 0.00001 && rate <= 1) {
       learningRate.value = rate
@@ -65,15 +65,12 @@ export const useNetworkStore = defineStore('network', () => {
   //   {title: "Волатильность", value: "volatility"},
   // ])
   const features = ref([
-    "log_return",
     "close",
     "high",
     "low",
     "candle_body",
     "rsi_14",
     "ema_14",
-    "sma_14",
-    "hv_14",
     "volatility",
   ])
   const selectedFeatures = ref<string[]>([])
@@ -113,8 +110,12 @@ export const useNetworkStore = defineStore('network', () => {
     return learningRate.value * 0.001
   })
   const isRegularizationDisabled = computed(() => {
-    return !Boolean(selectedRegularization.value)
+    return !selectedRegularization.value
   })
+  const isFeaturesEmpty = computed(() => {
+    return selectedFeatures.value.length === 0
+  })
+
 
   // Общая конфигурация для запроса
   const config = computed(() => ({
@@ -122,7 +123,7 @@ export const useNetworkStore = defineStore('network', () => {
     hidden_neurons: neuronsCount.value,
     epochs: epochsCount.value,
     learning_rate: learningRate.value,
-    features: ["pct_return", ...selectedFeatures.value],
+    features: selectedFeatures.value,
     test_rate: testRate.value,
     regularizer: selectedRegularization.value,
     regularizer_rate: regularizationRate.value,
@@ -186,6 +187,7 @@ export const useNetworkStore = defineStore('network', () => {
     setEpochsCount,
     setLearningRate,
     setSelectedFeatures,
+    isFeaturesEmpty,
     setTestRate,
     setSelectedRegularization,
     setSelectedActivation,

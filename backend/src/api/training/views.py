@@ -1,6 +1,3 @@
-# api/training/router.py
-import asyncio
-
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from starlette import status
 

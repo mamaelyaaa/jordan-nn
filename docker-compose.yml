@@ -8,3 +8,14 @@ services:
     container_name: jordan-backend
     ports:
       - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jordan-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/app:/app
+      - /app/node_modules

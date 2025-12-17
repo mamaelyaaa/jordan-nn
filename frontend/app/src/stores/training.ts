@@ -100,6 +100,10 @@ export const useTrainingStore = defineStore('training', () => {
   }
 
   const stopTraining = (predictions: any) => {
+    if (predictions) {
+      stocksStore.trainPredicts = predictions.train_prediction || []
+      stocksStore.testPredicts = predictions.test_prediction || []
+    }
     if (socket.value && isTraining.value) {
       socket.value.close()
       socket.value = null
@@ -109,8 +113,6 @@ export const useTrainingStore = defineStore('training', () => {
     networkStore.setDisabled(false)
     companyStore.setDisabled(false)
 
-    stocksStore.trainPredicts = predictions.train_prediction
-    stocksStore.testPredicts = predictions.test_prediction
     stocksStore.stopLoading()
   }
 

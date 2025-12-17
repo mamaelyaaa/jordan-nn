@@ -4,10 +4,12 @@ import { useStocksStore } from '@/stores/stocks'
 import { useNetworkStore } from '@/stores/network'
 import { storeToRefs } from 'pinia'
 import VueApexCharts from 'vue3-apexcharts'
+import {useTrainingStore} from "@/stores/training.ts";
 
 /* ===== stores ===== */
 const stocksStore = useStocksStore()
 const networkStore = useNetworkStore()
+const trainingStore = useTrainingStore()
 
 const { candleStickSeries, hasData, isLoading } = storeToRefs(stocksStore)
 const { testRate } = storeToRefs(networkStore)
@@ -154,6 +156,8 @@ const chartOptions = computed(() => ({
     <div ref="chartContainer" class="stocks-chart">
       <div v-if="isLoading" class="loading-state">
         <v-progress-circular indeterminate size="64" />
+        <p v-if="trainingStore.isTraining" class="loading-text">Обучение модели...</p>
+        <p v-else class="loading-text">Загрузка данных...</p>
       </div>
 
       <div v-else-if="hasData" class="candle-chart-container">
@@ -185,6 +189,7 @@ const chartOptions = computed(() => ({
 .loading-state {
   flex: 1;
   display: flex;
+  color: rgb(0, 42, 255);
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -192,8 +197,8 @@ const chartOptions = computed(() => ({
   padding: 40px;
 }
 .loading-text {
-  font-size: 16px;
-  color: rgba(0, 0, 0, 0.7);
+  font-size: 18px;
+  color: rgb(0, 42, 255);
 } /* График */
 .candle-chart-container {
   flex: 1;

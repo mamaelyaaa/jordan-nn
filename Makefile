@@ -2,20 +2,51 @@ DC = docker compose
 EXEC = docker exec -it
 LOGS = docker logs
 APP_FILE = docker-compose.yml
-APP_CONTAINER = jordan-backend
+BACKEND_CONTAINER = jordan-backend
+FRONTEND_CONTAINER = jordan-frontend
 
-.PHONY: app
-app:
+
+.PHONY: all
+all:
 	${DC} -f ${APP_FILE} up --build -d
 
-.PHONY: app-logs
-app-logs:
-	${LOGS} ${APP_CONTAINER} -f
+.PHONY: backend
+backend:
+	${DC} -f ${APP_FILE} up --build -d backend
 
-.PHONY: app-down
-app-down:
+.PHONY: frontend
+frontend:
+	${DC} -f ${APP_FILE} up --build -d frontend
+
+.PHONY: logs
+logs:
+	${DC} -f ${APP_FILE} logs -f
+
+.PHONY: down
+down:
 	${DC} -f ${APP_FILE} down
 
-.PHONY: app-shell
-app-shell:
-	${EXEC} ${APP_CONTAINER} bash
+.PHONY: down-v
+down-v:
+	${DC} -f ${APP_FILE} down -v
+
+.PHONY: backend-shell
+backend-shell:
+	${EXEC} ${BACKEND_CONTAINER} bash
+
+.PHONY: frontend-shell
+frontend-shell:
+	${EXEC} ${FRONTEND_CONTAINER} bash
+
+.PHONY: rebuild
+rebuild:
+	${DC} -f ${APP_FILE} down
+	${DC} -f ${APP_FILE} up --build -d
+
+.PHONY: stop
+stop:
+	${DC} -f ${APP_FILE} stop
+
+.PHONY: start
+start:
+	${DC} -f ${APP_FILE} start

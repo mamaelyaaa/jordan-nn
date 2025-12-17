@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -192,32 +192,6 @@ class JordanRNN:
 
         # Импорт
         import asyncio
-        import queue
-
-        # Создаем очередь для сообщений
-        message_queue = queue.Queue()
-
-        # Функция для отправки всех сообщений из очереди
-        def flush_message_queue():
-            try:
-                from api.websockets.connection import websocket_manager
-                from api.training.session import session_manager
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                while not message_queue.empty():
-                    msg_type, data = message_queue.get_nowait()
-                    if msg_type == "progress":
-                        loop.run_until_complete(
-                            websocket_manager.send_progress(session_id, data)
-                        )
-                    elif msg_type == "update_session":
-                        loop.run_until_complete(session_manager.update_session(**data))
-
-                loop.close()
-            except Exception as e:
-                print(f"Error flushing message queue: {e}")
 
         # Импорт менеджеров
         from api.training.session import session_manager
@@ -257,7 +231,6 @@ class JordanRNN:
 
                     print(f"Training paused at epoch {epoch}")
                     while session.is_paused():
-                        time.sleep(1)
                         session = run_async(session_manager.get_session(session_id))
                         if not session or session.should_stop():
                             break
